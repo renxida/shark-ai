@@ -145,7 +145,7 @@ class Batch:
         trace_tensor("prefill.token_ids", self.token_ids)
         trace_tensor("prefill.seq_block_ids", seq_block_ids_tensor)
         trace_tensor("prefill.attention_mask", attention_mask)
-        logits = model.prefill(
+        self.logits = model.prefill(
             self.token_ids,
             attention_mask=attention_mask,
             seq_block_ids=seq_block_ids_tensor,
@@ -156,7 +156,7 @@ class Batch:
         # TODO: Normalize the output of extract_tokens_from_logits into
         # tensor [bs, 1].
         tokens = torch.tensor(
-            model.extract_tokens_from_logits(logits, self.seq_lens)
+            model.extract_tokens_from_logits(self.logits, self.seq_lens)
         ).unsqueeze(1)
         print(f":: Prefill results:\n{tokens.tolist()}")
         self.add_result_token(tokens)
