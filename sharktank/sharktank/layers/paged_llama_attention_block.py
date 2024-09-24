@@ -143,14 +143,16 @@ class PagedLlamaAttentionBlock(ThetaLayer):
         keys = xk.transpose(1, 2)
         values = xv.transpose(1, 2)
 
-        if self.attention_kernel == "decomposed":
+        if False:  # self.attention_kernel == "decomposed":
             # Flash attention.
             attn_weights = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(
                 self.head_dim
             )
             self.assert_not_nan(attn_weights)
             if self.use_grok:
-                attn_weights = 30 * torch.tanh(attn_weights * (0.08838834764831845 / 30.0))
+                attn_weights = 30 * torch.tanh(
+                    attn_weights * (0.08838834764831845 / 30.0)
+                )
 
             # Apply attention mask.
             self.trace_tensor("attn_weights", attn_weights, values=False)
@@ -162,7 +164,10 @@ class PagedLlamaAttentionBlock(ThetaLayer):
                 attn_weights, values
             )  # (bs, heads, slen, head_dim)
         else:
-            is_causal = attention_mask is None and batch_seq_len == 1
+            attention_mask = (
+                None  # if batch_seq_len > 1 else attention_mask.to(dtype=torch.float32)
+            )
+            is_causal = True
             attn_output = torch.nn.functional.scaled_dot_product_attention(
                 query=xq,  # [bs, ..., sl, dim]
                 key=keys,  # [bs, ..., sl, dim]

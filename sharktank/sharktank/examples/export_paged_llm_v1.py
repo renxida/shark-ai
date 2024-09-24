@@ -55,7 +55,7 @@ def main():
         "--attn-kernel",
         type=str,
         default="decomposed",
-        options=["decomposed", "torch_sdpa"],
+        help='["decomposed", "torch_sdpa"],',
     )
 
     args = cli.parse(parser)

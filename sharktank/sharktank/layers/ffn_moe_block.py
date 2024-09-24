@@ -33,13 +33,13 @@ class PreGatherFFNMOE(ThetaLayer):
 
     def pre_matmul_gather(self, inputs, weights, experts):
         inputs = inputs[:, :]
-        weights = weights[experts, :, :]
+        weights = weights[experts, :, :].to(inputs.dtype)
         matmul = torch.einsum("mk,menk->men", inputs, weights)
         return matmul
 
     def bigger_mmg(self, inputs, weights, experts):
         inputs = inputs[:, :]
-        weights = weights[experts, :, :]
+        weights = weights[experts, :, :].to(inputs.dtype)
         matmul = torch.einsum("mek,menk->men", inputs, weights)
         return matmul
 
