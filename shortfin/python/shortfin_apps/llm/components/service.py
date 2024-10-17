@@ -151,6 +151,7 @@ class BatcherProcess(sf.Process):
                 self.submit(StrobeMessage())
 
     async def run(self):
+        logger.info("Starting InferenceExecutorProcess run")
         strober_task = asyncio.create_task(self._background_strober())
         reader = self.batcher_infeed.reader()
         while item := await reader():
@@ -172,6 +173,9 @@ class BatcherProcess(sf.Process):
         await strober_task
 
     def board_flights(self):
+        logger.info(
+            f"Boarding flights. Prefills: {len(self.pending_prefills)}, Decodes: {len(self.pending_decodes)}"
+        )
         waiting_count = len(self.pending_prefills) + len(self.pending_decodes)
         if waiting_count == 0:
             return
@@ -290,6 +294,7 @@ class InferenceExecutorProcess(sf.Process):
         self.page_tables = page_tables
 
     async def run(self):
+        logger.info("Starting InferenceExecutorProcess run")
         try:
             is_decode = self.phase == InferencePhase.DECODE
             req_bs = len(self.exec_requests)
@@ -385,6 +390,67 @@ class InferenceExecutorProcess(sf.Process):
             )
             # Invoke. Logits are of shape [bs, bsl, d].
             (logits,) = await fn(*args)
+
+            logits_hostlist = logits.for_transfer()
+            assert logits.dtype == sfnp.float16
+            print("logits type:", logits.dtype)
+            logits_hostlist.copy_from(logits)
+
+            # print(logits_hostlist)
+            logits_hostlist = logits_hostlist.items
+
+            def get_array_type(arr):
+                format_dict = {
+                    ("b", 1): "signed char",
+                    ("B", 1): "unsigned char",
+                    ("h", 2): "short",
+                    ("H", 2): "unsigned short",
+                    ("i", 4): "int",
+                    ("I", 4): "unsigned int",
+                    ("l", 4): "long",
+                    ("L", 4): "unsigned long",
+                    ("q", 8): "long long",
+                    ("Q", 8): "unsigned long long",
+                    ("f", 4): "float",
+                    ("d", 8): "double",
+                }
+                return format_dict.get((arr.typecode, arr.itemsize), "unknown")
+
+            def log_tensor_stats(tensor, name="Tensor"):
+                from scipy import stats
+
+                # Count NaN values
+                nan_count = np.isnan(tensor).sum()
+
+                # Remove NaN values for calculations
+                tensor_no_nan = tensor[~np.isnan(tensor)]
+
+                logger.info(f"{name} stats:")
+                logger.info(f"  NaN count: {nan_count} / {tensor.size}")
+                logger.info(f"  Shape: {tensor.shape}, dtype: {tensor.dtype}")
+
+                if len(tensor_no_nan) > 0:
+                    logger.info(f"  Min (excluding NaN): {tensor_no_nan.min()}")
+                    logger.info(f"  Max (excluding NaN): {tensor_no_nan.max()}")
+                    logger.info(f"  Mean (excluding NaN): {tensor_no_nan.mean()}")
+                    logger.info(
+                        f"  Mode (excluding NaN): {stats.mode(tensor_no_nan)[0]}"
+                    )
+                else:
+                    logger.warning(f"  All values are NaN in {name}")
+
+            print("type of logits.items:", type(logits_hostlist))
+            print("dtype of logits.items:", get_array_type(logits_hostlist))
+            # logger.info(f"set of logits:{set(logits_hostlist)}")
+            # print(logits_hostlist)
+            import numpy as np
+
+            logits_hostlist = np.frombuffer(logits_hostlist, dtype=np.uint16)
+
+            # # reinterpret
+            # logits_hostlist = logits_hostlist.astype(np.uint16)
+            logits_hostlist = logits_hostlist.view(np.float16)
+            log_tensor_stats(logits_hostlist, name="logits")
 
             # Return results.
             for i in range(req_count):

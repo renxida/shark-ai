@@ -203,6 +203,8 @@ class Refs {
     add_type(DType::uint64(), "Q", sizeof(unsigned long long));
     add_type(DType::float32(), "f", sizeof(float));
     add_type(DType::float64(), "d", sizeof(double));
+    add_type(DType::float16(), "H",
+             sizeof(unsigned short));  // hack for dumping float16 values
     return table;
   }
 };

@@ -91,6 +91,9 @@ class AttnPageCache:
             self.page_tables.append(page_table)
 
     def acquire_free_pages(self, count: int) -> list[AttnPageEntry] | None:
+        logger.info(
+            f"Attempting to acquire {count} pages. Available: {len(self.attn_page_free)}"
+        )
         with self._lock:
             available = len(self.attn_page_free)
             if count > available:
@@ -98,6 +101,7 @@ class AttnPageCache:
             return [self.attn_page_free.pop() for _ in range(count)]
 
     def release_pages(self, pages: list[AttnPageEntry]):
+        logger.info(f"Releasing {len(pages)} pages")
         with self._lock:
             self.attn_page_free.extend(pages)
 
@@ -109,3 +113,15 @@ class AttnPageCache:
             f"AttnPageCache({total_pages - free_pages}/{total_pages} pages in use: "
             f"{100.0 * free_pages / total_pages}% free)"
         )
+
+
+def dump_cache_contents(self):
+    logger.info("Dumping KV cache contents:")
+    for i, page_table in enumerate(self.page_tables):
+        logger.info(f"Page table {i} contents:")
+        logger.info(f"Shape: {page_table.shape}, dtype: {page_table.dtype}")
+        logger.info(
+            f"Min: {page_table.min()}, Max: {page_table.max()}, Mean: {page_table.mean()}"
+        )
+        logger.info(f"First 10 elements: {page_table.flatten()[:10]}")
+        logger.info(f"Last 10 elements: {page_table.flatten()[-10:]}")
