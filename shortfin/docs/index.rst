@@ -18,12 +18,6 @@ Welcome to shortfin's documentation!
 
    reference
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Howto
-
-   parameter_loading
-
 
 Indices and tables
 ==================
