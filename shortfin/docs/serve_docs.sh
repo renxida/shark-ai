@@ -21,7 +21,7 @@ if [ $? -eq 0 ]; then
     echo "View your documentation at http://localhost:8000"
     echo "Press Ctrl+C to stop the server."
     cd _build
-    python3 -m http.server 8000
+    python3 -m http.server 31337
 else
     echo "Error: Documentation build failed."
 fi
