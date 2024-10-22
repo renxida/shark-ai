@@ -434,3 +434,6 @@ class PagedKVCache(BaseKVCache):
         part_block_view = ops.cat(part_block_views, dim=0)
 
         subblock_table.index_copy_(0, subblock_ids, part_block_view)
+        # dump kvcache here as numpy
+        # numpy dump subblock_table (page table)
+        # numpy dump cache_partitions (cache state)

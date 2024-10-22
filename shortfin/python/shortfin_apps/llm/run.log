@@ -1,0 +1,1083 @@
+[2024-10-22 11:04:20.166] [info] [manager.py:21] Created local system with ['amdgpu:0:0@0'] devices
+[2024-10-22 11:04:20.204] [info] [cache.py:78] Allocating page table (shape=[256, 2662400], dtype=float16, size=1.3GiB) on DeviceAffinity(amdgpu:0:0@0[0x1])
+[2024-10-22 11:04:20.205] [info] [cache.py:91] Page table filled with zeroes
+[2024-10-22 11:04:20.205] [info] [cache.py:94] Page table dtype: float16
+[2024-10-22 11:04:20.205] [info] [service.py:64] Loading parameter fiber 'model' from: /tmp/sharktank/llama/open-llama-3b-v2-f16.gguf
+[2024-10-22 11:04:20.214] [info] [server.py:82] Started server process [3228812]
+[2024-10-22 11:04:20.214] [info] [on.py:48] Waiting for application startup.
+[2024-10-22 11:04:20.214] [info] [manager.py:29] Starting system manager
+[2024-10-22 11:04:20.215] [info] [server.py:41] Initializing service 'default': ServiceManager(
+  model_params=ModelParams(max_seq_len=2048, transformer_block_count=26, attn_head_count=32, attn_head_dim=100, prefill_batch_sizes=[4], decode_batch_sizes=[4], module_name='module', module_abi_version=1, attn_dtype=float16, paged_kv_cache=PagedKVCacheParams(block_seq_stride=16, device_block_count=256))
+  inference_modules=[ProgramModule('module', version=0, exports=[prefill_bs4$async(0rrrrrr_r), prefill_bs4(0rrrr_r), decode_bs4$async(0rrrrrrr_r), decode_bs4(0rrrrr_r), __init(0v_v)])]
+  page_cache=AttnPageCache(0/256 pages in use: 100.0% free)
+)
+[2024-10-22 11:04:21.132] [info] [on.py:62] Application startup complete.
+[2024-10-22 11:04:21.132] [info] [service.py:154] Starting InferenceExecutorProcess run
+[2024-10-22 11:04:21.133] [info] [server.py:214] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[2024-10-22 11:04:21.382] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:21.633] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:21.883] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:22.133] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:22.384] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:22.634] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:22.884] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:23.134] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:23.385] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:23.635] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:23.885] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:24.136] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:24.386] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:24.632] [info] [h11_impl.py:476] 127.0.0.1:44846 - "GET /health HTTP/1.1" 200
+[2024-10-22 11:04:24.642] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:24.642] [info] [service.py:176] Boarding flights. Prefills: 1, Decodes: 0
+[2024-10-22 11:04:24.642] [info] [cache.py:101] Attempting to acquire 1 pages. Available: 256
+[2024-10-22 11:04:24.642] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:04:24.642] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:04:24.642] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:04:24.642] [info] [service.py:473] INVOKE ProgramFunction(prefill_bs4$async: 0rrrrrr_r):
+  0: [4, 16]
+  1: [4]
+  2: [4, 1]
+  3: [256, 2662400]
+[2024-10-22 11:04:24.643] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:04:24.643] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:04:24.643] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:04:24.643] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:04:24.643] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:04:24.873] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:04:24.873] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:04:24.873] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:04:24.873] [info] [service.py:321]   NaN count: 0 / 64
+[2024-10-22 11:04:24.873] [info] [service.py:322]   Shape: (64,), dtype: int64
+[2024-10-22 11:04:24.873] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:04:24.873] [info] [service.py:326]   Max (excluding NaN): 29562
+[2024-10-22 11:04:24.873] [info] [service.py:327]   Mean (excluding NaN): 4613.25
+[2024-10-22 11:04:24.874] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:04:24.874] [info] [service.py:331]   First 10 elements: [    1 29500 29532 29500 29536 29500 29556 29500 29562 29500]  Last  10 elements: [0 0 0 0 0 0 0 0 0 0]
+[2024-10-22 11:04:24.874] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:04:24.874] [info] [service.py:352] number of zero elements total: 53
+[2024-10-22 11:04:24.874] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:04:24.874] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:04:24.874] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:04:24.874] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:04:24.874] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:04:24.874] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:04:24.874] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:04:24.874] [info] [service.py:321]   NaN count: 0 / 64
+[2024-10-22 11:04:24.874] [info] [service.py:322]   Shape: (64,), dtype: int64
+[2024-10-22 11:04:24.874] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:04:24.874] [info] [service.py:326]   Max (excluding NaN): 29562
+[2024-10-22 11:04:24.874] [info] [service.py:327]   Mean (excluding NaN): 4613.25
+[2024-10-22 11:04:24.874] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:04:24.875] [info] [service.py:331]   First 10 elements: [    1 29500 29532 29500 29536 29500 29556 29500 29562 29500]  Last  10 elements: [0 0 0 0 0 0 0 0 0 0]
+[2024-10-22 11:04:24.875] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:04:24.875] [info] [service.py:352] number of zero elements total: 53
+[2024-10-22 11:04:24.875] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:04:24.875] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:04:24.875] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:04:24.875] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:04:24.875] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:04:24.971] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:04:25.020] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:04:26.128] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:04:28.313] [info] [service.py:321]   NaN count: 0 / 681574400
+[2024-10-22 11:04:28.313] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:04:29.330] [info] [service.py:325]   Min (excluding NaN): 0.0
+[2024-10-22 11:04:30.337] [info] [service.py:326]   Max (excluding NaN): 0.0
+[2024-10-22 11:04:31.465] [info] [service.py:327]   Mean (excluding NaN): 0.0
+[2024-10-22 11:04:32.807] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:04:33.054] [info] [service.py:331]   First 10 elements: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]  Last  10 elements: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+[2024-10-22 11:05:15.506] [info] [service.py:347] number of zero elements at start: 681574400
+[2024-10-22 11:05:58.190] [info] [service.py:352] number of zero elements total: 681574400
+[2024-10-22 11:06:01.606] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:06:01.606] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:06:01.606] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:06:01.606] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:06:01.606] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:06:01.606] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:06:01.703] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:06:01.752] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:06:02.859] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:06:05.057] [info] [service.py:321]   NaN count: 2464000 / 681574400
+[2024-10-22 11:06:05.057] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:06:05.987] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:06:07.006] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:06:08.247] [info] [service.py:327]   Mean (excluding NaN): -1.0788440704345703e-05
+[2024-10-22 11:06:11.465] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:06:11.712] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:06:11.712] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:06:51.513] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:06:51.591] [info] [service.py:282] logits stats:
+[2024-10-22 11:06:51.591] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:06:51.591] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:06:51.591] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:06:51.592] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:06:51.592] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:06:51.595] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:06:51.601] [info] [service.py:321]   NaN count: 1536000 / 2048000
+[2024-10-22 11:06:51.601] [info] [service.py:322]   Shape: (2048000,), dtype: float16
+[2024-10-22 11:06:51.602] [info] [service.py:325]   Min (excluding NaN): -50.0625
+[2024-10-22 11:06:51.603] [info] [service.py:326]   Max (excluding NaN): 24.75
+[2024-10-22 11:06:51.604] [info] [service.py:327]   Mean (excluding NaN): -14.7265625
+[2024-10-22 11:06:51.628] [info] [service.py:328]   Mode (excluding NaN): -19.1875
+[2024-10-22 11:06:51.628] [info] [service.py:331]   First 10 elements: [10.875 10.43   9.94   1.734 -5.152 -5.15  -5.156 -5.16  -5.17  -5.152]  Last  10 elements: [-42.38 -44.22 -44.03 -45.78 -48.56 -43.9  -44.47 -43.56 -43.34 -42.88]
+[2024-10-22 11:06:51.628] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:06:51.756] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:06:51.758] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:06:51.758] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:06:51.758] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:06:51.758] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:06:51.758] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:06:51.758] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:06:51.758] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:06:51.758] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:06:51.758] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:06:51.758] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:06:51.758] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:06:51.758] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:06:51.758] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:06:51.758] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:06:51.759] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:06:51.759] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:06:51.759] [info] [service.py:326]   Max (excluding NaN): 29500
+[2024-10-22 11:06:51.759] [info] [service.py:327]   Mean (excluding NaN): 7375.0
+[2024-10-22 11:06:51.759] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:06:51.759] [info] [service.py:331]   First 10 elements: [29500     0     0     0]  Last  10 elements: [29500     0     0     0]
+[2024-10-22 11:06:51.759] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:06:51.759] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:06:51.759] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:06:51.759] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:06:51.759] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:06:51.759] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:06:51.759] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:06:51.759] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:06:51.759] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:06:51.759] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:06:51.760] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:06:51.760] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:06:51.760] [info] [service.py:326]   Max (excluding NaN): 29500
+[2024-10-22 11:06:51.760] [info] [service.py:327]   Mean (excluding NaN): 7375.0
+[2024-10-22 11:06:51.760] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:06:51.760] [info] [service.py:331]   First 10 elements: [29500     0     0     0]  Last  10 elements: [29500     0     0     0]
+[2024-10-22 11:06:51.760] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:06:51.760] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:06:51.760] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:06:51.760] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:06:51.760] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:06:51.760] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:06:51.760] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:06:51.862] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:06:51.912] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:06:53.042] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:06:55.237] [info] [service.py:321]   NaN count: 2464000 / 681574400
+[2024-10-22 11:06:55.237] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:06:56.154] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:06:57.152] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:06:58.413] [info] [service.py:327]   Mean (excluding NaN): -1.0788440704345703e-05
+[2024-10-22 11:07:01.633] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:07:01.881] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:07:01.881] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:07:43.130] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:07:43.427] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:07:43.427] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:07:43.427] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:07:43.427] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:07:43.427] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:07:43.427] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:07:43.523] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:07:43.572] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:07:44.722] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:07:46.908] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:07:46.908] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:07:47.828] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:07:48.833] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:07:50.102] [info] [service.py:327]   Mean (excluding NaN): -1.0132789611816406e-05
+[2024-10-22 11:07:53.308] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:07:53.555] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:07:53.555] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:08:34.812] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:08:34.891] [info] [service.py:282] logits stats:
+[2024-10-22 11:08:34.891] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:08:34.891] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:08:34.891] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:08:34.891] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:08:34.891] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:08:34.891] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:08:34.892] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:08:34.892] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:08:34.892] [info] [service.py:325]   Min (excluding NaN): -7.171875
+[2024-10-22 11:08:34.892] [info] [service.py:326]   Max (excluding NaN): 1.8974609375
+[2024-10-22 11:08:34.892] [info] [service.py:327]   Mean (excluding NaN): -2.353515625
+[2024-10-22 11:08:34.893] [info] [service.py:328]   Mode (excluding NaN): -2.39453125
+[2024-10-22 11:08:34.893] [info] [service.py:331]   First 10 elements: [-0.849   0.0678 -0.7236 -2.729  -3.785  -3.785  -3.785  -3.787  -3.797
+ -3.791 ]  Last  10 elements: [-3.805 -3.615 -1.195 -3.723 -3.066 -2.459 -2.209 -3.754 -3.793 -1.294]
+[2024-10-22 11:08:34.894] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:08:34.901] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:08:34.903] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:08:34.903] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:08:34.903] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:08:34.903] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:08:34.903] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:08:34.903] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:08:34.903] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:08:34.903] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:08:34.903] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:08:34.903] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:08:34.903] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:08:34.904] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:08:34.904] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:08:34.904] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:08:34.904] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:08:34.904] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:08:34.904] [info] [service.py:326]   Max (excluding NaN): 1338
+[2024-10-22 11:08:34.904] [info] [service.py:327]   Mean (excluding NaN): 334.5
+[2024-10-22 11:08:34.904] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:08:34.904] [info] [service.py:331]   First 10 elements: [1338    0    0    0]  Last  10 elements: [1338    0    0    0]
+[2024-10-22 11:08:34.904] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:08:34.904] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:08:34.904] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:08:34.904] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:08:34.904] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:08:34.904] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:08:34.904] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:08:34.904] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:08:34.904] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:08:34.904] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:08:34.904] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:08:34.904] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:08:34.904] [info] [service.py:326]   Max (excluding NaN): 1338
+[2024-10-22 11:08:34.904] [info] [service.py:327]   Mean (excluding NaN): 334.5
+[2024-10-22 11:08:34.905] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:08:34.905] [info] [service.py:331]   First 10 elements: [1338    0    0    0]  Last  10 elements: [1338    0    0    0]
+[2024-10-22 11:08:34.905] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:08:34.905] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:08:34.905] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:08:34.905] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:08:34.905] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:08:34.905] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:08:34.905] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:08:35.058] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:08:36.165] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:08:38.355] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:08:38.355] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:08:39.276] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:08:40.294] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:08:41.553] [info] [service.py:327]   Mean (excluding NaN): -1.0132789611816406e-05
+[2024-10-22 11:08:44.756] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:08:45.003] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:08:45.003] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:09:26.430] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:09:26.725] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:09:26.725] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:09:26.725] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:09:26.725] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:09:26.725] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:09:26.725] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:09:26.824] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:09:26.872] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:09:27.984] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:09:30.181] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:09:30.181] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:09:31.103] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:09:32.134] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:09:33.376] [info] [service.py:327]   Mean (excluding NaN): -9.5367431640625e-06
+[2024-10-22 11:09:36.584] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:09:36.831] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:09:36.831] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:10:19.128] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:10:19.202] [info] [service.py:282] logits stats:
+[2024-10-22 11:10:19.202] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:10:19.202] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:10:19.202] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:10:19.203] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:10:19.203] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:10:19.203] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:10:19.204] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:10:19.204] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:10:19.204] [info] [service.py:325]   Min (excluding NaN): -18.234375
+[2024-10-22 11:10:19.204] [info] [service.py:326]   Max (excluding NaN): 1.7490234375
+[2024-10-22 11:10:19.204] [info] [service.py:327]   Mean (excluding NaN): -10.0546875
+[2024-10-22 11:10:19.205] [info] [service.py:328]   Mode (excluding NaN): -10.0234375
+[2024-10-22 11:10:19.205] [info] [service.py:331]   First 10 elements: [ -4.055  -4.684  -3.059 -11.086 -13.07  -13.055 -13.08  -13.08  -13.09
+ -13.08 ]  Last  10 elements: [-11.75  -12.73  -10.516 -13.56  -13.28  -10.39  -13.43  -14.26  -11.3
+ -12.33 ]
+[2024-10-22 11:10:19.205] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:10:19.213] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:10:19.214] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:10:19.214] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:10:19.214] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:10:19.214] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:10:19.214] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:10:19.215] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:10:19.215] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:10:19.215] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:10:19.215] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:10:19.215] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:10:19.215] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:10:19.215] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:10:19.215] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:10:19.215] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:10:19.215] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:10:19.215] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:10:19.215] [info] [service.py:326]   Max (excluding NaN): 287
+[2024-10-22 11:10:19.215] [info] [service.py:327]   Mean (excluding NaN): 71.75
+[2024-10-22 11:10:19.215] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:10:19.215] [info] [service.py:331]   First 10 elements: [287   0   0   0]  Last  10 elements: [287   0   0   0]
+[2024-10-22 11:10:19.215] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:10:19.215] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:10:19.216] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:10:19.216] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:10:19.216] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:10:19.216] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:10:19.216] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:10:19.216] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:10:19.216] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:10:19.216] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:10:19.216] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:10:19.216] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:10:19.216] [info] [service.py:326]   Max (excluding NaN): 287
+[2024-10-22 11:10:19.216] [info] [service.py:327]   Mean (excluding NaN): 71.75
+[2024-10-22 11:10:19.216] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:10:19.216] [info] [service.py:331]   First 10 elements: [287   0   0   0]  Last  10 elements: [287   0   0   0]
+[2024-10-22 11:10:19.216] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:10:19.216] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:10:19.217] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:10:19.217] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:10:19.217] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:10:19.217] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:10:19.217] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:10:19.363] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:10:20.487] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:10:22.683] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:10:22.683] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:10:23.607] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:10:24.629] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:10:25.869] [info] [service.py:327]   Mean (excluding NaN): -9.5367431640625e-06
+[2024-10-22 11:10:29.091] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:10:29.339] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:10:29.339] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:11:11.114] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:11:11.408] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:11:11.408] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:11:11.408] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:11:11.408] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:11:11.408] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:11:11.408] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:11:11.504] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:11:11.553] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:11:12.679] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:11:14.891] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:11:14.891] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:11:15.813] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:11:16.820] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:11:18.080] [info] [service.py:327]   Mean (excluding NaN): -8.940696716308594e-06
+[2024-10-22 11:11:21.290] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:11:21.537] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:11:21.537] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:12:02.929] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:12:03.004] [info] [service.py:282] logits stats:
+[2024-10-22 11:12:03.004] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:12:03.004] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:12:03.004] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:12:03.005] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:12:03.005] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:12:03.005] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:12:03.006] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:12:03.006] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:12:03.006] [info] [service.py:325]   Min (excluding NaN): -17.671875
+[2024-10-22 11:12:03.006] [info] [service.py:326]   Max (excluding NaN): -3.658203125
+[2024-10-22 11:12:03.006] [info] [service.py:327]   Mean (excluding NaN): -11.515625
+[2024-10-22 11:12:03.007] [info] [service.py:328]   Mode (excluding NaN): -11.7421875
+[2024-10-22 11:12:03.007] [info] [service.py:331]   First 10 elements: [ -7.08   -6.71   -6.73  -11.875 -14.2   -14.19  -14.21  -14.2   -14.22
+ -14.2  ]  Last  10 elements: [-14.07  -13.86  -10.85  -13.875 -14.14  -12.06  -13.42  -14.43  -13.14
+ -11.82 ]
+[2024-10-22 11:12:03.007] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:12:03.015] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:12:03.017] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:12:03.017] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:12:03.017] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:12:03.017] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:12:03.017] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:12:03.017] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:12:03.017] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:12:03.017] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:12:03.017] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:12:03.017] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:12:03.017] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:12:03.017] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:12:03.017] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:12:03.017] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:12:03.017] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:12:03.017] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:12:03.017] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:12:03.017] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:12:03.018] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:12:03.018] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:12:03.018] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:12:03.018] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:12:03.018] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:12:03.018] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:12:03.018] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:12:03.018] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:12:03.018] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:12:03.018] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:12:03.018] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:12:03.018] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:12:03.018] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:12:03.018] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:12:03.018] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:12:03.018] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:12:03.018] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:12:03.018] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:12:03.018] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:12:03.018] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:12:03.019] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:12:03.019] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:12:03.019] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:12:03.019] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:12:03.019] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:12:03.165] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:12:04.266] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:12:06.454] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:12:06.454] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:12:07.385] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:12:08.416] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:12:09.660] [info] [service.py:327]   Mean (excluding NaN): -8.940696716308594e-06
+[2024-10-22 11:12:12.853] [info] [service.py:328]   Mode (excluding NaN): 0.0
+[2024-10-22 11:12:13.104] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:12:13.104] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:12:55.019] [info] [service.py:352] number of zero elements total: 676249600
+[2024-10-22 11:12:55.317] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:12:55.318] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:12:55.318] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:12:55.318] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:12:55.318] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:12:55.318] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:12:55.414] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:12:55.462] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:12:56.564] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:12:58.765] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:12:58.766] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:12:59.687] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:13:00.692] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:13:01.958] [info] [service.py:327]   Mean (excluding NaN): -8.344650268554688e-06
+[2024-10-22 11:13:05.156] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:13:05.403] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:13:05.403] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:13:44.809] [info] [service.py:352] number of zero elements total: 676249601
+[2024-10-22 11:13:44.885] [info] [service.py:282] logits stats:
+[2024-10-22 11:13:44.885] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:13:44.885] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:13:44.885] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:13:44.885] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:13:44.885] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:13:44.886] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:13:44.886] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:13:44.886] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:13:44.886] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:13:44.886] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:13:44.886] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:13:44.887] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:13:44.888] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:13:44.888] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:13:44.895] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:13:44.896] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:13:44.896] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:13:44.897] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:13:44.897] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:13:44.897] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:13:44.897] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:13:44.897] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:13:44.897] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:13:44.897] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:13:44.897] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:13:44.897] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:13:44.897] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:13:44.897] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:13:44.897] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:13:44.897] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:13:44.897] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:13:44.897] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:13:44.897] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:13:44.897] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:13:44.897] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:13:44.897] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:13:44.897] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:13:44.898] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:13:44.898] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:13:44.898] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:13:44.898] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:13:44.898] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:13:44.898] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:13:44.898] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:13:44.898] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:13:44.898] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:13:44.898] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:13:44.898] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:13:44.898] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:13:44.898] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:13:44.898] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:13:44.898] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:13:44.898] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:13:44.899] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:13:44.899] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:13:44.899] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:13:44.899] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:13:44.899] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:13:45.045] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:13:46.161] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:13:48.358] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:13:48.358] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:13:49.279] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:13:50.285] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:13:51.528] [info] [service.py:327]   Mean (excluding NaN): -8.344650268554688e-06
+[2024-10-22 11:13:54.742] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:13:54.989] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [ 0.01839  0.4038   1.165   -0.3154   0.3813  -0.1362   0.0614   0.159
+  0.1316  -0.03412]
+[2024-10-22 11:13:54.989] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:14:37.133] [info] [service.py:352] number of zero elements total: 676249601
+[2024-10-22 11:14:37.429] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:14:37.429] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:14:37.429] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:14:37.429] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:14:37.429] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:14:37.429] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:14:37.525] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:14:37.574] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:14:38.684] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:14:40.874] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:14:40.875] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:14:41.830] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:14:42.838] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:14:44.080] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:14:47.293] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:14:47.540] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:14:47.540] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:15:26.127] [info] [service.py:352] number of zero elements total: 676249602
+[2024-10-22 11:15:26.206] [info] [service.py:282] logits stats:
+[2024-10-22 11:15:26.206] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:15:26.206] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:15:26.206] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:15:26.206] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:15:26.207] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:15:26.207] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:15:26.207] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:15:26.207] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:15:26.207] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:15:26.207] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:15:26.208] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:15:26.209] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:15:26.209] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:15:26.209] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:15:26.217] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:15:26.218] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:15:26.218] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:15:26.218] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:15:26.219] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:15:26.219] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:15:26.219] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:15:26.219] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:15:26.219] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:15:26.219] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:15:26.219] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:15:26.219] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:15:26.219] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:15:26.219] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:15:26.219] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:15:26.219] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:15:26.219] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:15:26.219] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:15:26.219] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:15:26.219] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:15:26.219] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:15:26.219] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:15:26.219] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:15:26.220] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:15:26.220] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:15:26.220] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:15:26.220] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:15:26.220] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:15:26.220] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:15:26.220] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:15:26.220] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:15:26.220] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:15:26.220] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:15:26.220] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:15:26.220] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:15:26.220] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:15:26.220] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:15:26.220] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:15:26.220] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:15:26.221] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:15:26.221] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:15:26.221] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:15:26.221] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:15:26.221] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:15:26.367] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:15:27.475] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:15:29.682] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:15:29.682] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:15:30.633] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:15:31.634] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:15:32.872] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:15:36.094] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:15:36.344] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:15:36.344] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:16:16.734] [info] [service.py:352] number of zero elements total: 676249602
+[2024-10-22 11:16:17.028] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:16:17.028] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:16:17.028] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:16:17.028] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:16:17.028] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:16:17.028] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:16:17.124] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:16:17.173] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:16:18.281] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:16:20.489] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:16:20.489] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:16:21.409] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:16:22.414] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:16:23.650] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:16:26.865] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:16:27.115] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:16:27.115] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:17:08.158] [info] [service.py:352] number of zero elements total: 676249602
+[2024-10-22 11:17:08.235] [info] [service.py:282] logits stats:
+[2024-10-22 11:17:08.235] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:17:08.235] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:17:08.235] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:17:08.235] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:17:08.235] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:17:08.235] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:17:08.236] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:17:08.236] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:17:08.236] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:17:08.236] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:17:08.236] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:17:08.237] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:17:08.237] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:17:08.237] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:17:08.245] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:17:08.247] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:17:08.247] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:17:08.247] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:17:08.247] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:17:08.247] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:17:08.248] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:17:08.248] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:17:08.248] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:17:08.248] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:17:08.248] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:17:08.248] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:17:08.248] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:17:08.248] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:17:08.248] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:17:08.248] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:17:08.248] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:17:08.248] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:17:08.248] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:17:08.249] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:17:08.249] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:17:08.249] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:17:08.249] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:17:08.249] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:17:08.249] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:17:08.249] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:17:08.249] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:17:08.249] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:17:08.249] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:17:08.249] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:17:08.249] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:17:08.249] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:17:08.249] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:17:08.249] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:17:08.249] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:17:08.249] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:17:08.249] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:17:08.249] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:17:08.249] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:17:08.250] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:17:08.250] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:17:08.250] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:17:08.250] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:17:08.250] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:17:08.396] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:17:09.504] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:17:11.690] [info] [service.py:321]   NaN count: 2470400 / 681574400
+[2024-10-22 11:17:11.690] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:17:12.621] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:17:13.633] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:17:14.870] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:17:18.060] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:17:18.310] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:17:18.310] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:17:59.946] [info] [service.py:352] number of zero elements total: 676249602
+[2024-10-22 11:18:00.240] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:18:00.240] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:18:00.240] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:18:00.240] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:18:00.241] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:18:00.241] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:18:00.337] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:18:00.386] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:18:01.505] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:18:03.697] [info] [service.py:321]   NaN count: 2316800 / 681574400
+[2024-10-22 11:18:03.697] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:18:04.620] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:18:05.634] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:18:06.885] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:18:10.084] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:18:10.334] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:18:10.334] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:18:51.570] [info] [service.py:352] number of zero elements total: 676249603
+[2024-10-22 11:18:51.647] [info] [service.py:282] logits stats:
+[2024-10-22 11:18:51.647] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:18:51.647] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:18:51.647] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:18:51.647] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:18:51.648] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:18:51.648] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:18:51.649] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:18:51.649] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:18:51.649] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:18:51.649] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:18:51.649] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:18:51.650] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:18:51.650] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:18:51.650] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:18:51.658] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:18:51.659] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:18:51.659] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:18:51.659] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:18:51.659] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:18:51.660] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:18:51.660] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:18:51.660] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:18:51.660] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:18:51.660] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:18:51.660] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:18:51.660] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:18:51.660] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:18:51.660] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:18:51.660] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:18:51.660] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:18:51.660] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:18:51.660] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:18:51.660] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:18:51.660] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:18:51.660] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:18:51.660] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:18:51.660] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:18:51.661] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:18:51.661] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:18:51.661] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:18:51.661] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:18:51.661] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:18:51.661] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:18:51.661] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:18:51.661] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:18:51.661] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:18:51.661] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:18:51.661] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:18:51.661] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:18:51.661] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:18:51.661] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:18:51.661] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:18:51.661] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:18:51.661] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:18:51.661] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:18:51.661] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:18:51.661] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:18:51.661] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:18:51.807] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:18:52.915] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:18:55.133] [info] [service.py:321]   NaN count: 2316800 / 681574400
+[2024-10-22 11:18:55.133] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:18:56.055] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:18:57.062] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:18:58.317] [info] [service.py:327]   Mean (excluding NaN): -7.3909759521484375e-06
+[2024-10-22 11:19:01.543] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:19:01.792] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:19:01.793] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:19:39.020] [info] [service.py:352] number of zero elements total: 676249603
+[2024-10-22 11:19:39.314] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:19:39.314] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:19:39.314] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:19:39.314] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:19:39.314] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:19:39.314] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:19:39.410] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:19:39.459] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:19:40.576] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:19:42.777] [info] [service.py:321]   NaN count: 2163200 / 681574400
+[2024-10-22 11:19:42.777] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:19:43.708] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:19:44.709] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:19:45.949] [info] [service.py:327]   Mean (excluding NaN): -7.331371307373047e-06
+[2024-10-22 11:19:49.181] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:19:49.431] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:19:49.431] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:20:26.528] [info] [service.py:352] number of zero elements total: 676249604
+[2024-10-22 11:20:26.605] [info] [service.py:282] logits stats:
+[2024-10-22 11:20:26.605] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:20:26.605] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:20:26.605] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:20:26.605] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:20:26.606] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:20:26.606] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:20:26.606] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:20:26.606] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:20:26.606] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:20:26.606] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:20:26.606] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:20:26.608] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:20:26.608] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:20:26.608] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:20:26.615] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:20:26.617] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:20:26.617] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:20:26.617] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:20:26.617] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:20:26.617] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:20:26.617] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:20:26.617] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:20:26.617] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:20:26.617] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:20:26.617] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:20:26.617] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:20:26.618] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:20:26.618] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:20:26.618] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:20:26.618] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:20:26.618] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:20:26.618] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:20:26.618] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:20:26.618] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:20:26.618] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:20:26.618] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:20:26.618] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:20:26.618] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:20:26.618] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:20:26.618] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:20:26.618] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:20:26.618] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:20:26.618] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:20:26.618] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:20:26.618] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:20:26.618] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:20:26.618] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:20:26.618] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:20:26.618] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:20:26.619] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:20:26.619] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:20:26.619] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:20:26.619] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:20:26.619] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:20:26.619] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:20:26.619] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:20:26.619] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:20:26.619] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:20:26.766] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:20:27.874] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:20:30.082] [info] [service.py:321]   NaN count: 2163200 / 681574400
+[2024-10-22 11:20:30.082] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:20:31.003] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:20:32.016] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:20:33.258] [info] [service.py:327]   Mean (excluding NaN): -7.331371307373047e-06
+[2024-10-22 11:20:36.477] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:20:36.728] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:20:36.728] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:21:13.584] [info] [service.py:352] number of zero elements total: 676249604
+[2024-10-22 11:21:13.877] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:21:13.877] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:21:13.877] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:21:13.877] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:21:13.877] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:21:13.877] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:21:13.973] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:21:14.022] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:21:15.140] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:21:17.340] [info] [service.py:321]   NaN count: 2009600 / 681574400
+[2024-10-22 11:21:17.340] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:21:18.276] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:21:19.286] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:21:20.524] [info] [service.py:327]   Mean (excluding NaN): -7.152557373046875e-06
+[2024-10-22 11:21:23.753] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:21:24.002] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:21:24.002] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:22:03.704] [info] [service.py:352] number of zero elements total: 676249605
+[2024-10-22 11:22:03.780] [info] [service.py:282] logits stats:
+[2024-10-22 11:22:03.780] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:22:03.780] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:22:03.780] [info] [service.py:290] tensor logits is a device array; converting to host array
+[2024-10-22 11:22:03.780] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:22:03.780] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:22:03.780] [info] [service.py:305] tensor logits is an array.array
+[2024-10-22 11:22:03.781] [info] [service.py:321]   NaN count: 96000 / 128000
+[2024-10-22 11:22:03.781] [info] [service.py:322]   Shape: (128000,), dtype: float16
+[2024-10-22 11:22:03.781] [info] [service.py:325]   Min (excluding NaN): -24.65625
+[2024-10-22 11:22:03.781] [info] [service.py:326]   Max (excluding NaN): -5.84375
+[2024-10-22 11:22:03.781] [info] [service.py:327]   Mean (excluding NaN): -16.4375
+[2024-10-22 11:22:03.782] [info] [service.py:328]   Mode (excluding NaN): -16.5625
+[2024-10-22 11:22:03.782] [info] [service.py:331]   First 10 elements: [-10.47 -10.74  -9.34 -16.97 -19.83 -19.81 -19.84 -19.84 -19.86 -19.84]  Last  10 elements: [-19.56 -18.98 -16.31 -19.61 -20.23 -17.34 -20.22 -20.7  -18.11 -18.58]
+[2024-10-22 11:22:03.782] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:22:03.790] [info] [service.py:352] number of zero elements total: 0
+[2024-10-22 11:22:03.792] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 1
+[2024-10-22 11:22:03.792] [info] [service.py:382] Starting InferenceExecutorProcess run
+[2024-10-22 11:22:03.792] [info] [service.py:383] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:22:03.792] [info] [service.py:384] main fiber: Fiber(worker='default-inference', devices=[gpu0])
+[2024-10-22 11:22:03.792] [info] [service.py:473] INVOKE ProgramFunction(decode_bs4$async: 0rrrrrrr_r):
+  0: [4, 1]
+  1: [4]
+  2: [4]
+  3: [4, 1]
+  4: [256, 2662400]
+[2024-10-22 11:22:03.792] [info] [service.py:480] pre vmfb page table dump
+[2024-10-22 11:22:03.792] [info] [service.py:482] ######### tokens_host #########
+[2024-10-22 11:22:03.792] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:22:03.792] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:22:03.792] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:22:03.792] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:22:03.792] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:22:03.792] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:22:03.792] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:22:03.792] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:22:03.792] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:22:03.792] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:22:03.792] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:22:03.793] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:22:03.793] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:22:03.793] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:22:03.793] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:22:03.793] [info] [service.py:485] ######### tokens #########
+[2024-10-22 11:22:03.793] [info] [service.py:282] Tensor stats:
+[2024-10-22 11:22:03.793] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:22:03.793] [info] [service.py:284]   dtype:int64
+[2024-10-22 11:22:03.793] [info] [service.py:290] tensor Tensor is a device array; converting to host array
+[2024-10-22 11:22:03.793] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:22:03.793] [info] [service.py:305] tensor Tensor is an array.array
+[2024-10-22 11:22:03.793] [info] [service.py:321]   NaN count: 0 / 4
+[2024-10-22 11:22:03.793] [info] [service.py:322]   Shape: (4,), dtype: int64
+[2024-10-22 11:22:03.793] [info] [service.py:325]   Min (excluding NaN): 0
+[2024-10-22 11:22:03.793] [info] [service.py:326]   Max (excluding NaN): 29525
+[2024-10-22 11:22:03.793] [info] [service.py:327]   Mean (excluding NaN): 7381.25
+[2024-10-22 11:22:03.793] [info] [service.py:328]   Mode (excluding NaN): 0
+[2024-10-22 11:22:03.794] [info] [service.py:331]   First 10 elements: [29525     0     0     0]  Last  10 elements: [29525     0     0     0]
+[2024-10-22 11:22:03.794] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:22:03.794] [info] [service.py:352] number of zero elements total: 3
+[2024-10-22 11:22:03.794] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:22:03.794] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:22:03.794] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:22:03.794] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:22:03.794] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:22:03.948] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:22:05.068] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:22:07.256] [info] [service.py:321]   NaN count: 2009600 / 681574400
+[2024-10-22 11:22:07.256] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:22:08.177] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:22:09.178] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:22:10.452] [info] [service.py:327]   Mean (excluding NaN): -7.152557373046875e-06
+[2024-10-22 11:22:13.662] [info] [service.py:328]   Mode (excluding NaN): -0.0
+[2024-10-22 11:22:13.912] [info] [service.py:331]   First 10 elements: [-0.6914  -1.199    0.2332   0.579   -0.588   -0.3015   0.4688   0.03323
+  0.3064  -0.03165]  Last  10 elements: [-0.1588    0.11163   0.1306    0.072    -0.00494   0.115    -0.01889
+  0.0817    0.05542   0.011665]
+[2024-10-22 11:22:13.912] [info] [service.py:347] number of zero elements at start: 0
+[2024-10-22 11:22:49.486] [info] [server.py:258] Shutting down
+[2024-10-22 11:22:49.602] [info] [server.py:303] Waiting for background tasks to complete. (CTRL+C to force quit)
+[2024-10-22 11:22:50.448] [info] [service.py:352] number of zero elements total: 676249605
+[2024-10-22 11:22:50.744] [info] [service.py:492] post vmfb page table dump
+[2024-10-22 11:22:50.744] [info] [service.py:357] Dumping KV cache contents:
+[2024-10-22 11:22:50.744] [info] [service.py:282] Page table 0 contents stats:
+[2024-10-22 11:22:50.744] [info] [service.py:283]   type :<class '_shortfin_default.lib.array.device_array'>
+[2024-10-22 11:22:50.744] [info] [service.py:284]   dtype:float16
+[2024-10-22 11:22:50.744] [info] [service.py:290] tensor Page table 0 contents is a device array; converting to host array
+[2024-10-22 11:22:50.841] [info] [service.py:176] Boarding flights. Prefills: 0, Decodes: 0
+[2024-10-22 11:22:50.890] [info] [service.py:298] tensor {name} is a base_array; converting to array.array
+[2024-10-22 11:22:52.005] [info] [service.py:305] tensor Page table 0 contents is an array.array
+[2024-10-22 11:22:54.198] [info] [service.py:321]   NaN count: 1856000 / 681574400
+[2024-10-22 11:22:54.198] [info] [service.py:322]   Shape: (681574400,), dtype: float16
+[2024-10-22 11:22:55.122] [info] [service.py:325]   Min (excluding NaN): -15.4140625
+[2024-10-22 11:22:56.144] [info] [service.py:326]   Max (excluding NaN): 15.2421875
+[2024-10-22 11:22:57.394] [info] [service.py:327]   Mean (excluding NaN): -6.9141387939453125e-06
