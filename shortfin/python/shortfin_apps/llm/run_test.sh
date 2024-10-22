@@ -25,6 +25,11 @@ python -m sharktank.examples.export_paged_llm_v1 \
   --output-mlir="/tmp/sharktank/llama/model.mlir" \
   --output-config="/tmp/sharktank/llama/config.json"
 
+
+iree-compile "/tmp/sharktank/llama/model.mlir" \
+  --iree-hal-target-backends=llvm-cpu \
+  -o /tmp/sharktank/llama/model_cpu.vmfb
+
 iree-compile "/tmp/sharktank/llama/model.mlir" \
   --iree-hal-target-backends=rocm \
   --iree-hip-target=gfx1100 \
@@ -51,6 +56,15 @@ cat > /tmp/sharktank/llama/edited_config.json << EOF
     }
 }
 EOF
+
+
+# Start the server in the background and save its PID
+python -m shortfin_apps.llm.server \
+  --tokenizer=/tmp/sharktank/llama/tokenizer.json \
+  --model_config=/tmp/sharktank/llama/edited_config.json \
+  --vmfb=/tmp/sharktank/llama/model_cpu.vmfb \
+  --parameters=/tmp/sharktank/llama/open-llama-3b-v2-f16.gguf \
+  --device=local-task &
 
 # Start the server in the background and save its PID
 python -m shortfin_apps.llm.server \

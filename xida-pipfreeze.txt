@@ -25,6 +25,7 @@ idna==3.10
 imagesize==1.4.1
 iniconfig==2.0.0
 ipython==8.28.0
+-f https://iree.dev/pip-release-links.html
 iree-compiler==20241016.1048
 iree-runtime==20241016.1048
 -e git+https://github.com/iree-org/iree-turbine.git@6d6f1172832e30737958ad93a63dc075ab9c22b1#egg=iree_turbine

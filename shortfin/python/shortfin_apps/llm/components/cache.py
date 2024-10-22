@@ -88,6 +88,9 @@ class AttnPageCache:
             page_table = sf.array.device_array.for_device(
                 device, page_table_shape, model_params.attn_dtype
             )
+            logging.info("Page table filled with zeroes")
+            logging.info(f"Page table dtype: {page_table.dtype}")
+            page_table.fill(b"\0")
             self.page_tables.append(page_table)
 
     def acquire_free_pages(self, count: int) -> list[AttnPageEntry] | None:
@@ -113,15 +116,3 @@ class AttnPageCache:
             f"AttnPageCache({total_pages - free_pages}/{total_pages} pages in use: "
             f"{100.0 * free_pages / total_pages}% free)"
         )
-
-
-def dump_cache_contents(self):
-    logger.info("Dumping KV cache contents:")
-    for i, page_table in enumerate(self.page_tables):
-        logger.info(f"Page table {i} contents:")
-        logger.info(f"Shape: {page_table.shape}, dtype: {page_table.dtype}")
-        logger.info(
-            f"Min: {page_table.min()}, Max: {page_table.max()}, Mean: {page_table.mean()}"
-        )
-        logger.info(f"First 10 elements: {page_table.flatten()[:10]}")
-        logger.info(f"Last 10 elements: {page_table.flatten()[-10:]}")

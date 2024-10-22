@@ -219,6 +219,9 @@ class BatcherProcess(sf.Process):
                 logger.debug("Cannot fulfill request for %d pages", needed_pages)
                 continue
             else:
+                # TODO: log the pages here
+                # specifically what pages
+                logger.debug(f"Pages: {pages}")
                 logger.debug("Allocated %d cache pages to request", len(pages))
                 prefill_request.lock_initial_cache_pages(cache, pages)
 
@@ -276,6 +279,89 @@ class BatcherProcess(sf.Process):
 ########################################################################################
 
 
+######### debug
+
+
+async def log_tensor_stats(tensor, name="Tensor"):
+    logger.info(f"{name} stats:")
+    logger.info(f"  type :{type(tensor)}")
+    logger.info(f"  dtype:{tensor.dtype}")
+    from scipy import stats
+    import array
+    import numpy as np
+
+    fp16hack = False
+    if isinstance(tensor, sfnp.device_array):
+        logger.info(f"tensor {name} is a device array; converting to host array")
+        host_tensor = tensor.for_transfer()
+        host_tensor.copy_from(tensor)
+        await tensor.device
+        tensor = host_tensor
+    else:
+        logger.info(f"tensor {name} is not a device array; assuming it is a host array")
+    if isinstance(tensor, sfnp.base_array):
+        logger.info("tensor {name} is a base_array; converting to array.array")
+        if tensor.dtype == sfnp.float16:
+            fp16hack = True
+        tensor = tensor.items
+    else:
+        logger.info(f"tensor {name} is not a base array; assuming it is an array.array")
+    if isinstance(tensor, array.array):
+        logger.info(f"tensor {name} is an array.array")
+        dtype = tensor.typecode
+        if fp16hack:
+            dtype = np.float16
+        tensor = np.frombuffer(tensor, dtype=dtype)
+    else:
+        logger.info(f"tensor {name} is not an array.array")
+    assert isinstance(tensor, np.ndarray)
+
+    # Count NaN values
+    nan_count = np.isnan(tensor).sum()
+
+    # Remove NaN values for calculations
+    tensor_no_nan = tensor[~np.isnan(tensor)]
+
+    logger.info(f"  NaN count: {nan_count} / {tensor.size}")
+    logger.info(f"  Shape: {tensor.shape}, dtype: {tensor.dtype}")
+
+    if len(tensor_no_nan) > 0:
+        logger.info(f"  Min (excluding NaN): {tensor_no_nan.min()}")
+        logger.info(f"  Max (excluding NaN): {tensor_no_nan.max()}")
+        logger.info(f"  Mean (excluding NaN): {tensor_no_nan.mean()}")
+        logger.info(f"  Mode (excluding NaN): {stats.mode(tensor_no_nan)[0]}")
+        logger.info(
+            f"  First 10 elements: {tensor_no_nan.flatten()[:10]}"
+            f"  Last  10 elements: {tensor_no_nan.flatten()[-10:]}"
+        )
+    else:
+        logger.warning(f"  All values are NaN in {name}")
+
+    # debug zero fill incomplete problem
+
+    count = 0
+    for x in tensor:
+        if x == 0:
+            count += 1
+        else:
+            break
+    logger.info(f"number of zero elements at start: {count}")
+    count = 0
+    for x in tensor:
+        if x == 0:
+            count += 1
+    logger.info(f"number of zero elements total: {count}")
+
+
+async def dump_cache_contents(page_tables):
+    logger.info("Dumping KV cache contents:")
+    for i, page_table in enumerate(page_tables):
+        await log_tensor_stats(page_table, f"Page table {i} contents")
+
+
+###### end debug
+
+
 class InferenceExecutorProcess(sf.Process):
     """Executes a prefill or decode batch."""
 
@@ -295,6 +381,8 @@ class InferenceExecutorProcess(sf.Process):
 
     async def run(self):
         logger.info("Starting InferenceExecutorProcess run")
+        logger.info(f"main fiber: {self.service.main_fiber}")
+        logger.info(f"main fiber: {self.service.main_fiber}")
         try:
             is_decode = self.phase == InferencePhase.DECODE
             req_bs = len(self.exec_requests)
@@ -388,69 +476,28 @@ class InferenceExecutorProcess(sf.Process):
                 fn,
                 "".join([f"\n  {i}: {ary.shape}" for i, ary in enumerate(args)]),
             )
+
+            await device0
+            logger.info("pre vmfb page table dump")
+
+            logger.info("######### tokens_host #########")
+            await log_tensor_stats(tokens_host)
+
+            logger.info("######### tokens #########")
+            await log_tensor_stats(tokens)
+
+            await dump_cache_contents(self.page_tables)
+
             # Invoke. Logits are of shape [bs, bsl, d].
             (logits,) = await fn(*args)
 
-            logits_hostlist = logits.for_transfer()
-            assert logits.dtype == sfnp.float16
-            print("logits type:", logits.dtype)
-            logits_hostlist.copy_from(logits)
+            from time import sleep
 
-            # print(logits_hostlist)
-            logits_hostlist = logits_hostlist.items
+            sleep(15)
+            logger.info("post vmfb page table dump")
+            await dump_cache_contents(self.page_tables)
 
-            def get_array_type(arr):
-                format_dict = {
-                    ("b", 1): "signed char",
-                    ("B", 1): "unsigned char",
-                    ("h", 2): "short",
-                    ("H", 2): "unsigned short",
-                    ("i", 4): "int",
-                    ("I", 4): "unsigned int",
-                    ("l", 4): "long",
-                    ("L", 4): "unsigned long",
-                    ("q", 8): "long long",
-                    ("Q", 8): "unsigned long long",
-                    ("f", 4): "float",
-                    ("d", 8): "double",
-                }
-                return format_dict.get((arr.typecode, arr.itemsize), "unknown")
-
-            def log_tensor_stats(tensor, name="Tensor"):
-                from scipy import stats
-
-                # Count NaN values
-                nan_count = np.isnan(tensor).sum()
-
-                # Remove NaN values for calculations
-                tensor_no_nan = tensor[~np.isnan(tensor)]
-
-                logger.info(f"{name} stats:")
-                logger.info(f"  NaN count: {nan_count} / {tensor.size}")
-                logger.info(f"  Shape: {tensor.shape}, dtype: {tensor.dtype}")
-
-                if len(tensor_no_nan) > 0:
-                    logger.info(f"  Min (excluding NaN): {tensor_no_nan.min()}")
-                    logger.info(f"  Max (excluding NaN): {tensor_no_nan.max()}")
-                    logger.info(f"  Mean (excluding NaN): {tensor_no_nan.mean()}")
-                    logger.info(
-                        f"  Mode (excluding NaN): {stats.mode(tensor_no_nan)[0]}"
-                    )
-                else:
-                    logger.warning(f"  All values are NaN in {name}")
-
-            print("type of logits.items:", type(logits_hostlist))
-            print("dtype of logits.items:", get_array_type(logits_hostlist))
-            # logger.info(f"set of logits:{set(logits_hostlist)}")
-            # print(logits_hostlist)
-            import numpy as np
-
-            logits_hostlist = np.frombuffer(logits_hostlist, dtype=np.uint16)
-
-            # # reinterpret
-            # logits_hostlist = logits_hostlist.astype(np.uint16)
-            logits_hostlist = logits_hostlist.view(np.float16)
-            log_tensor_stats(logits_hostlist, name="logits")
+            await log_tensor_stats(logits, name="logits")
 
             # Return results.
             for i in range(req_count):
