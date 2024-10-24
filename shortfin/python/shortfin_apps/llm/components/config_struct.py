@@ -159,6 +159,16 @@ class ModelParams:
         size *= 2  # K and V cache line
         size *= self.attn_head_count
         size *= self.attn_head_dim
+        import logging
+
+        logging.info(
+            "computing paged_kv_unit_size_elements by multiplying the following values:"
+        )
+        logging.info(f"transformer_block_count: {self.transformer_block_count}")
+        logging.info("2 (K and V cache line)")
+        logging.info(f"attn_head_count: {self.attn_head_count}")
+        logging.info(f"attn_head_dim: {self.attn_head_dim}")
+        logging.info(f"result: {size}")
         return size
 
     @property

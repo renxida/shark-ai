@@ -18,6 +18,7 @@ from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
 from .tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class GenerateService:
@@ -278,88 +279,196 @@ class BatcherProcess(sf.Process):
 # Inference Executor
 ########################################################################################
 
+# debug_utils.py
+from typing import NamedTuple
+import logging
+import datetime
+from pathlib import Path
+import numpy as np
+from scipy import stats
+import array
+import shortfin.array as sfnp
 
-######### debug
+logger = logging.getLogger(__name__)
 
 
-async def log_tensor_stats(tensor, name="Tensor"):
-    logger.info(f"{name} stats:")
-    logger.info(f"  type :{type(tensor)}")
-    logger.info(f"  dtype:{tensor.dtype}")
-    from scipy import stats
-    import array
-    import numpy as np
+class TensorStats(NamedTuple):
+    """Container for tensor statistics to avoid recalculating values."""
 
-    fp16hack = False
-    if isinstance(tensor, sfnp.device_array):
-        logger.info(f"tensor {name} is a device array; converting to host array")
-        host_tensor = tensor.for_transfer()
-        host_tensor.copy_from(tensor)
-        await tensor.device
-        tensor = host_tensor
-    else:
-        logger.info(f"tensor {name} is not a device array; assuming it is a host array")
-    if isinstance(tensor, sfnp.base_array):
-        logger.info("tensor {name} is a base_array; converting to array.array")
-        if tensor.dtype == sfnp.float16:
-            fp16hack = True
-        tensor = tensor.items
-    else:
-        logger.info(f"tensor {name} is not a base array; assuming it is an array.array")
-    if isinstance(tensor, array.array):
-        logger.info(f"tensor {name} is an array.array")
-        dtype = tensor.typecode
-        if fp16hack:
-            dtype = np.float16
-        tensor = np.frombuffer(tensor, dtype=dtype)
-    else:
-        logger.info(f"tensor {name} is not an array.array")
-    assert isinstance(tensor, np.ndarray)
+    nan_count: int
+    total_zeros: int
+    leading_zeros: int
+    min_val: float
+    max_val: float
+    mean_val: float
+    mode_val: float
+    first_elements: np.ndarray
+    last_elements: np.ndarray
 
-    # Count NaN values
-    nan_count = np.isnan(tensor).sum()
 
-    # Remove NaN values for calculations
-    tensor_no_nan = tensor[~np.isnan(tensor)]
+class TensorDebug:
+    """Utilities for debugging tensor operations and contents."""
 
-    logger.info(f"  NaN count: {nan_count} / {tensor.size}")
-    logger.info(f"  Shape: {tensor.shape}, dtype: {tensor.dtype}")
+    def __init__(self, dump_path: Path = Path("/tmp/sharktank/shortfin_llm")):
+        self.dump_path = dump_path
+        self.dump_path.mkdir(parents=True, exist_ok=True)
 
-    if len(tensor_no_nan) > 0:
-        logger.info(f"  Min (excluding NaN): {tensor_no_nan.min()}")
-        logger.info(f"  Max (excluding NaN): {tensor_no_nan.max()}")
-        logger.info(f"  Mean (excluding NaN): {tensor_no_nan.mean()}")
-        logger.info(f"  Mode (excluding NaN): {stats.mode(tensor_no_nan)[0]}")
-        logger.info(
-            f"  First 10 elements: {tensor_no_nan.flatten()[:10]}"
-            f"  Last  10 elements: {tensor_no_nan.flatten()[-10:]}"
-        )
-    else:
-        logger.warning(f"  All values are NaN in {name}")
-
-    # debug zero fill incomplete problem
-
-    count = 0
-    for x in tensor:
-        if x == 0:
-            count += 1
+    async def get_tensor(self, tensor, name: str = "Tensor") -> np.ndarray:
+        """Convert various tensor types to numpy array for analysis."""
+        if isinstance(tensor, sfnp.device_array):
+            logger.info(f"tensor {name} is a device array; converting to host array")
+            host_tensor = tensor.for_transfer()
+            host_tensor.copy_from(tensor)
+            await tensor.device
+            tensor = host_tensor
         else:
-            break
-    logger.info(f"number of zero elements at start: {count}")
-    count = 0
-    for x in tensor:
-        if x == 0:
-            count += 1
-    logger.info(f"number of zero elements total: {count}")
+            logger.info(
+                f"tensor {name} is not a device array; assuming it is a host array"
+            )
+
+        if isinstance(tensor, sfnp.base_array):
+            logger.info(f"tensor {name} is a base_array; converting to array.array")
+            fp16_hack = tensor.dtype == sfnp.float16
+            tensor = tensor.items
+        else:
+            logger.info(
+                f"tensor {name} is not a base array; assuming it is an array.array"
+            )
+            fp16_hack = False
+
+        if isinstance(tensor, array.array):
+            logger.info(f"tensor {name} is an array.array")
+            dtype = np.float16 if fp16_hack else tensor.typecode
+            tensor = np.frombuffer(tensor, dtype=dtype)
+        else:
+            logger.info(f"tensor {name} is not an array.array")
+
+        assert isinstance(tensor, np.ndarray)
+        return tensor
+
+    def _compute_tensor_stats(self, tensor: np.ndarray) -> TensorStats:
+        """Compute all tensor statistics in a single pass."""
+        # Flatten the tensor once
+        flat_tensor = tensor.ravel()
+
+        # Create boolean masks once
+        nan_mask = np.isnan(flat_tensor)
+        zero_mask = flat_tensor == 0
+
+        # Compute counts
+        nan_count = np.sum(nan_mask)
+        total_zeros = np.sum(zero_mask)
+
+        # Compute leading zeros efficiently
+        leading_zeros = np.searchsorted(zero_mask == False, True, side="right")
+
+        # Get valid values (non-NaN) for statistics
+        valid_tensor = flat_tensor[~nan_mask]
+
+        if len(valid_tensor) > 0:
+            # Compute basic statistics
+            min_val = np.min(valid_tensor)
+            max_val = np.max(valid_tensor)
+            mean_val = np.mean(valid_tensor)
+            mode_val = stats.mode(valid_tensor)[0]
+
+            # Get first and last elements
+            first_elements = valid_tensor[:10]
+            last_elements = valid_tensor[-10:]
+        else:
+            min_val = max_val = mean_val = mode_val = np.nan
+            first_elements = last_elements = np.array([])
+
+        return TensorStats(
+            nan_count=nan_count,
+            total_zeros=total_zeros,
+            leading_zeros=leading_zeros,
+            min_val=min_val,
+            max_val=max_val,
+            mean_val=mean_val,
+            mode_val=mode_val,
+            first_elements=first_elements,
+            last_elements=last_elements,
+        )
+
+    async def log_tensor_stats(self, tensor, name: str = "Tensor"):
+        """Log comprehensive tensor statistics and dump to file."""
+        tensor = await self.get_tensor(tensor, name)
+        name = name.replace(" ", "_")
+
+        # Save tensor to file (async file I/O could be implemented here if needed)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        dump_file = self.dump_path / f"{name}_{timestamp}.npy"
+        logger.info(f"Dumping tensor {name} to {dump_file}")
+        np.save(dump_file, tensor)
+
+        # Compute all stats in one pass
+        stats = self._compute_tensor_stats(tensor)
+
+        # Log information
+        logger.info(f"{name} stats:")
+        logger.info(f"  type: {type(tensor)}")
+        logger.info(f"  dtype: {tensor.dtype}")
+        logger.info(f"  shape: {tensor.shape}")
+        logger.info(f"  NaN count: {stats.nan_count} / {tensor.size}")
+
+        if len(stats.first_elements) > 0:
+            logger.info(f"  Min (excluding NaN): {stats.min_val}")
+            logger.info(f"  Max (excluding NaN): {stats.max_val}")
+            logger.info(f"  Mean (excluding NaN): {stats.mean_val}")
+            logger.info(f"  Mode (excluding NaN): {stats.mode_val}")
+            logger.info(f"  First 10 elements: {stats.first_elements}")
+            logger.info(f"  Last 10 elements: {stats.last_elements}")
+        else:
+            logger.warning(f"  All values are NaN in {name}")
+
+        logger.info(f"  Leading zeros: {stats.leading_zeros}")
+        logger.info(f"  Total zeros: {stats.total_zeros}")
+
+    async def log_tensor_values(self, tensor, name: str = "Tensor"):
+        """Log raw tensor values."""
+        tensor = await self.get_tensor(tensor, name)
+        name = name.replace(" ", "_")
+        logger.info(f"{name} values:")
+        logger.info(f"  {tensor}")
 
 
-async def dump_cache_contents(page_tables):
-    logger.info("Dumping KV cache contents:")
-    for i, page_table in enumerate(page_tables):
-        await log_tensor_stats(page_table, f"Page table {i} contents")
+class CacheDebug:
+    """Utilities for debugging cache operations."""
+
+    def __init__(self, tensor_debug: TensorDebug):
+        self.tensor_debug = tensor_debug
+
+    async def dump_cache_contents(self, page_tables):
+        """Dump and analyze contents of all page tables."""
+        logger.info("Skipping cache dump for now")
+        return
+        logger.info("Dumping KV cache contents:")
+        for i, page_table in enumerate(page_tables):
+            await self.tensor_debug.log_tensor_stats(
+                page_table, f"Page table {i} contents"
+            )
 
 
-###### end debug
+class InferenceDebug:
+    """Utilities for debugging inference operations."""
+
+    def __init__(self, tensor_debug: TensorDebug):
+        self.tensor_debug = tensor_debug
+
+    async def log_inference_inputs(
+        self, *, tokens, seq_lens, start_positions=None, seq_block_ids=None
+    ):
+        """Log all inference input tensors."""
+        logger.info("Logging inference inputs:")
+        await self.tensor_debug.log_tensor_values(tokens, "tokens")
+        await self.tensor_debug.log_tensor_values(seq_lens, "seq_lens")
+        if start_positions is not None:
+            await self.tensor_debug.log_tensor_values(
+                start_positions, "start_positions"
+            )
+        if seq_block_ids is not None:
+            await self.tensor_debug.log_tensor_values(seq_block_ids, "seq_block_ids")
 
 
 class InferenceExecutorProcess(sf.Process):
@@ -404,7 +513,7 @@ class InferenceExecutorProcess(sf.Process):
             bsl = int(math.ceil(bsl / seq_stride) * seq_stride)
             block_count = bsl // seq_stride
             req_count = len(self.exec_requests)
-            logger.debug("Prefill bs=%d, bsl=%d", bs, bsl)
+            logger.info("Prefill bs=%d, bsl=%d", bs, bsl)
 
             # Prepare inputs.
             # TODO: Better support in shortfin for h2d. The best way to do it is
@@ -477,32 +586,39 @@ class InferenceExecutorProcess(sf.Process):
                 "".join([f"\n  {i}: {ary.shape}" for i, ary in enumerate(args)]),
             )
 
+            self.tensor_debug = TensorDebug()
+            self.cache_debug = CacheDebug(self.tensor_debug)
+            self.inference_debug = InferenceDebug(self.tensor_debug)
             await device0
-            logger.info("pre vmfb page table dump")
+            logger.info("Pre-invoke debug information:")
 
-            logger.info("######### tokens_host #########")
-            await log_tensor_stats(tokens_host)
+            logger.info("Tokens information:")
+            await self.tensor_debug.log_tensor_stats(tokens_host, "tokens_host")
+            await self.tensor_debug.log_tensor_stats(tokens, "tokens")
 
-            logger.info("######### tokens #########")
-            await log_tensor_stats(tokens)
+            logger.info("Cache information:")
+            await self.cache_debug.dump_cache_contents(self.page_tables)
 
-            await dump_cache_contents(self.page_tables)
+            logger.info("Inference inputs:")
+            await self.inference_debug.log_inference_inputs(
+                tokens=tokens,
+                seq_lens=seq_lens,
+                start_positions=start_positions if is_decode else None,
+                seq_block_ids=seq_block_ids,
+            )
 
-            # Invoke. Logits are of shape [bs, bsl, d].
+            # Invoke function
             (logits,) = await fn(*args)
 
-            from time import sleep
-
-            sleep(15)
-            logger.info("post vmfb page table dump")
-            await dump_cache_contents(self.page_tables)
-
-            await log_tensor_stats(logits, name="logits")
-
+            logger.info("Post-invoke debug information:")
+            await self.cache_debug.dump_cache_contents(self.page_tables)
+            await self.tensor_debug.log_tensor_stats(logits, "logits")
             # Return results.
             for i in range(req_count):
                 req = self.exec_requests[i]
                 sl = len(req.input_token_ids)
+                logger.info("Picking logit slice for request %d", i)
+                logger.info("  Request token count: %d", sl)
                 if req.return_all_logits:
                     logits_item = logits.view(i, slice(0, sl))
                 else:
