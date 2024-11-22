@@ -15,14 +15,17 @@ sudo apt update && sudo apt install -y clang lld
 
 Install:
 
-```
-python-is-python3 python3-venv python3-dev
+```bash
+sudo apt install python-is-python3 python3-venv python3-dev
 ```
 
 <details>
 
 <summary> Or, alternatively, use `pyenv` to manage a separate python installation for more control over its version: </summary>
 
+For pyenv's instructions, see:
+
+https://github.com/pyenv/pyenv?tab=readme-ov-file#a-getting-pyenv
 
 First, install pyenv and its dependencies.
 
