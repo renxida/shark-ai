@@ -61,6 +61,11 @@ def main():
         help="Enables strictness during export",
         action="store_true",
     )
+    parser.add_argument(
+        "--return-cache-state",
+        help="Export prefill / decode functions that return cache state along with logits.",
+        action="store_true",
+    )
 
     cli.add_quantization_options(parser)
     cli.add_model_options(parser)
@@ -235,6 +240,8 @@ def main():
             if llama_config.tensor_parallelism_size != 1:
                 logits = ops.unshard(logits)
 
+            if args.return_cache_state:
+                return logits, cache_tensors
             return logits
 
     def generate_batch_decode(bs: int):
@@ -323,6 +330,8 @@ def main():
             if llama_config.tensor_parallelism_size != 1:
                 logits = ops.unshard(logits)
 
+            if args.return_cache_state:
+                return logits, cache_state
             return logits
 
     bsizes = []

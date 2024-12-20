@@ -32,6 +32,70 @@ class ServiceDebugDumper:
             f"[debug_service.py] Please find debug dumps for service.py in {self.dump_dir}"
         )
 
+    def _write_array_statistics(self, f, arr: np.ndarray, array_name: str):
+        """Write detailed statistics about a numpy array to a file handle.
+
+        Args:
+            f: File handle to write to
+            arr: Numpy array to analyze
+            array_name: Name of the array for the header
+        """
+        f.write(f"\n{'='*80}\n")
+        f.write(f"{array_name}:\n")
+        f.write(f"{'='*80}\n\n")
+
+        # Basic info
+        f.write(f"Shape: {arr.shape}\n")
+        f.write(f"Dtype: {arr.dtype}\n")
+        f.write(f"Total elements: {arr.size}\n")
+        f.write(f"Dimensions: {arr.ndim}\n\n")
+
+        # Stats
+        f.write("Statistics:\n")
+        nan_count = np.count_nonzero(np.isnan(arr))
+        inf_count = np.count_nonzero(np.isinf(arr))
+        f.write(f"- NaN count: {nan_count}\n")
+        f.write(f"- Inf count: {inf_count}\n")
+
+        if nan_count == 0 and inf_count == 0:
+            f.write(f"- Min: {np.min(arr)}\n")
+            f.write(f"- Max: {np.max(arr)}\n")
+            f.write(f"- Mean: {np.mean(arr):.6f}\n")
+            f.write(f"- Median: {np.median(arr):.6f}\n")
+            f.write(f"- Range: {np.ptp(arr)}\n")
+            try:
+                mode = pd.Series(arr.flatten()).mode().iloc[0]
+                f.write(f"- Mode: {mode}\n")
+            except:
+                f.write("- Mode: Unable to compute\n")
+
+            if np.issubdtype(arr.dtype, np.number):
+                try:
+                    hist, bins = np.histogram(arr.flatten(), bins="auto")
+                    f.write("\nHistogram:\n")
+                    f.write(
+                        "Bins: " + pformat(bins.tolist(), width=80, compact=True) + "\n"
+                    )
+                    f.write(
+                        "Counts: "
+                        + pformat(hist.tolist(), width=80, compact=True)
+                        + "\n"
+                    )
+                except Exception as e:
+                    f.write(f"\nHistogram computation failed: {str(e)}\n")
+        else:
+            f.write("Skipping additional statistics due to NaN/Inf values\n")
+
+        f.write("\nArray contents:\n")
+        if arr.size <= 64:
+            formatted = pformat(arr.tolist(), width=80, compact=True)
+            f.write(formatted + "\n")
+        else:
+            f.write("\nFirst 5 elements:\n")
+            f.write(pformat(arr.flatten()[:5].tolist(), width=80, compact=True) + "\n")
+            f.write("\nLast 5 elements:\n")
+            f.write(pformat(arr.flatten()[-5:].tolist(), width=80, compact=True) + "\n")
+
     async def pre_invocation_debug_dump(
         self, executor: "InferenceExecutorProcess", local_vars: Dict[str, Any]
     ):
@@ -132,7 +196,6 @@ class ServiceDebugDumper:
                 json.dump(debug_info, f, indent=2)
 
             # Save program arguments
-            path = dump_path
             args_np = []
             for i, a in enumerate(args):
                 host_array = a.for_transfer()
@@ -142,77 +205,65 @@ class ServiceDebugDumper:
 
             # Save binary numpy arrays
             for i, arr in enumerate(args_np):
-                np.save(path / f"{i}.npy", arr)
+                np.save(dump_path / f"{i}.npy", arr)
 
             # Generate human-readable report
-            with open(path / "saved_program_args.txt", "w") as f:
+            with open(dump_path / "saved_program_args.txt", "w") as f:
                 for i, arr in enumerate(args_np):
-                    f.write(f"\n{'='*80}\n")
-                    f.write(f"{i}.npy:\n")
-                    f.write(f"{'='*80}\n\n")
+                    self._write_array_statistics(f, arr, f"{i}.npy")
 
-                    # Basic info
-                    f.write(f"Shape: {arr.shape}\n")
-                    f.write(f"Dtype: {arr.dtype}\n")
-                    f.write(f"Total elements: {arr.size}\n")
-                    f.write(f"Dimensions: {arr.ndim}\n\n")
+    async def post_invocation_debug_dump(self, invocation_results: tuple):
+        """Debug dump after inference invocation, capturing output tensors.
+        Stores results in an 'invocation_results' subdirectory of the most recent pre-invocation dump.
 
-                    # Stats
-                    f.write("Statistics:\n")
-                    nan_count = np.count_nonzero(np.isnan(arr))
-                    inf_count = np.count_nonzero(np.isinf(arr))
-                    f.write(f"- NaN count: {nan_count}\n")
-                    f.write(f"- Inf count: {inf_count}\n")
+        Args:
+            invocation_results: Tuple of output tensors from the model invocation
+        """
+        async with self._dump_lock:
+            dump_path = self.dump_dir / f"{self.dump_id}"
+            if not dump_path.exists():
+                logger.error(
+                    f"No pre-invocation dump found at {dump_path}. Skipping post-invocation dump."
+                )
+                return
 
-                    if nan_count == 0 and inf_count == 0:
-                        f.write(f"- Min: {np.min(arr)}\n")
-                        f.write(f"- Max: {np.max(arr)}\n")
-                        f.write(f"- Mean: {np.mean(arr):.6f}\n")
-                        f.write(f"- Median: {np.median(arr):.6f}\n")
-                        f.write(f"- Range: {np.ptp(arr)}\n")
-                        try:
-                            mode = pd.Series(arr.flatten()).mode().iloc[0]
-                            f.write(f"- Mode: {mode}\n")
-                        except:
-                            f.write("- Mode: Unable to compute\n")
+            results_path = dump_path / "invocation_results"
+            results_path.mkdir(parents=True, exist_ok=True)
 
-                        if np.issubdtype(arr.dtype, np.number):
-                            try:
-                                hist, bins = np.histogram(arr.flatten(), bins="auto")
-                                f.write("\nHistogram:\n")
-                                f.write(
-                                    "Bins: "
-                                    + pformat(bins.tolist(), width=80, compact=True)
-                                    + "\n"
-                                )
-                                f.write(
-                                    "Counts: "
-                                    + pformat(hist.tolist(), width=80, compact=True)
-                                    + "\n"
-                                )
-                            except Exception as e:
-                                f.write(f"\nHistogram computation failed: {str(e)}\n")
-                    else:
-                        f.write(
-                            "Skipping additional statistics due to NaN/Inf values\n"
-                        )
+            # Save debug info as JSON
+            debug_info = {
+                "metadata": {
+                    "dump_id": self.dump_id,
+                    "dump_timestamp": datetime.now().isoformat(),
+                    "phase": "post_invocation",
+                    "result_count": len(invocation_results),
+                },
+                "tensor_shapes": {
+                    f"result_{i}": arr.shape for i, arr in enumerate(invocation_results)
+                },
+            }
 
-                    f.write("\nArray contents:\n")
-                    if arr.size <= 64:
-                        formatted = pformat(arr.tolist(), width=80, compact=True)
-                        f.write(formatted + "\n")
-                    else:
-                        f.write("\nFirst 5 elements:\n")
-                        f.write(
-                            pformat(arr.flatten()[:5].tolist(), width=80, compact=True)
-                            + "\n"
-                        )
-                        f.write("\nLast 5 elements:\n")
-                        f.write(
-                            pformat(arr.flatten()[-5:].tolist(), width=80, compact=True)
-                            + "\n"
-                        )
+            with open(results_path / "post_invoke_info.json", "w") as f:
+                json.dump(debug_info, f, indent=2)
 
+            # Save output tensors
+            results_np = []
+            for result in invocation_results:
+                host_array = result.for_transfer()
+                host_array.copy_from(result)
+                await result.device
+                results_np.append(np.array(host_array))
+
+            # Save binary numpy arrays
+            for i, arr in enumerate(results_np):
+                np.save(results_path / f"result_{i}.npy", arr)
+
+            # Generate human-readable report
+            with open(results_path / "results_report.txt", "w") as f:
+                for i, arr in enumerate(results_np):
+                    self._write_array_statistics(f, arr, f"result_{i}.npy")
+
+            # Increment dump_id after we've completed both pre and post dumps
             self.dump_id += 1
 
 

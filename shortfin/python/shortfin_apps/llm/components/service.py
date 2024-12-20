@@ -443,18 +443,28 @@ class InferenceExecutorProcess(sf.Process):
             )
 
             # pre-invocation args dump
-            if os.getenv("SHORTFIN_DEBUG_LLM_SERVICE", "False").lower() in (
+            SHORTFIN_DEBUG_LLM_SERVICE = os.getenv(
+                "SHORTFIN_DEBUG_LLM_SERVICE", "False"
+            ).lower() in (
                 "true",
                 "yes",
                 "1",
                 "y",
-            ):
+            )
+            if SHORTFIN_DEBUG_LLM_SERVICE:
                 await SERVICE_DEBUG_DUMPER.pre_invocation_debug_dump(
                     executor=self, local_vars=locals()
                 )
 
             # Invoke VMFB. Logits are of shape [bs, bsl, d].
-            (logits,) = await fn(*args, fiber=self.fiber)
+            invocation_results = await fn(*args, fiber=self.fiber)
+
+            if SHORTFIN_DEBUG_LLM_SERVICE:
+                await SERVICE_DEBUG_DUMPER.post_invocation_debug_dump(
+                    invocation_results
+                )
+
+            logits = invocation_results[0]
 
             # publish cache pages
             for r in self.exec_requests:
