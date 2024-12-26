@@ -40,8 +40,9 @@ class ServerManager:
     def __init__(self, config: ServerConfig):
         self.config = config
 
-    def write_config(self) -> Path:
+    def _write_config(self) -> Path:
         """Creates server config by extending the exported model config."""
+        # TODO: eliminate this by moving prefix sharing algorithm to be a cmdline arg of server.py
         source_config_path = self.config.artifacts.config_path
         server_config_path = (
             source_config_path.parent
@@ -51,25 +52,16 @@ class ServerManager:
         # Read the exported config as base
         with open(source_config_path) as f:
             config = json.load(f)
-
-        # Update with server-specific settings
-        config.update(
-            {
-                "paged_kv_cache": {
-                    "prefix_sharing_algorithm": self.config.prefix_sharing_algorithm
-                }
-            }
-        )
-
-        # Write the extended config
+        config["paged_kv_cache"][
+            "prefix_sharing_algorithm"
+        ] = self.config.prefix_sharing_algorithm
         with open(server_config_path, "w") as f:
             json.dump(config, f)
-        6
         return server_config_path
 
     def start(self) -> subprocess.Popen:
         """Starts the server process."""
-        config_path = self.write_config()
+        config_path = self._write_config()
         cmd = [
             sys.executable,
             "-m",
