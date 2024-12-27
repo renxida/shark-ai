@@ -17,8 +17,20 @@ class TestLLMServer:
         [
             ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "none"}),
             ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "trie"}),
-            ("llama3.1_8b", {"model": "llama3.1_8b", "prefix_sharing": "none"}),
-            ("llama3.1_8b", {"model": "llama3.1_8b", "prefix_sharing": "trie"}),
+            pytest.param(
+                "llama3.1_8b",
+                {"model": "llama3.1_8b", "prefix_sharing": "none"},
+                marks=pytest.mark.xfail(
+                    reason="llama3.1_8b irpa file not available on CI machine"
+                ),
+            ),
+            pytest.param(
+                "llama3.1_8b",
+                {"model": "llama3.1_8b", "prefix_sharing": "trie"},
+                marks=pytest.mark.xfail(
+                    reason="llama3.1_8b irpa file not available on CI machine"
+                ),
+            ),
         ],
         ids=[
             "open_llama_3b_none",
