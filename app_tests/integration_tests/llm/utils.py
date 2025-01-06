@@ -164,7 +164,6 @@ def _start_llm_server_args(
 
 
 def start_llm_server(
-    port,
     tokenizer_path,
     model_config_path,
     vmfb_path,

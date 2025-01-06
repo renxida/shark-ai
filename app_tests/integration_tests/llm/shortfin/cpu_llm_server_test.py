@@ -109,9 +109,10 @@ def do_generate(prompt, port, concurrent_requests=1):
     ],
     indirect=True,
 )
-def test_llm_server(llm_server, available_port):
+def test_llm_server(llm_server):
     # Here you would typically make requests to your server
     # and assert on the responses
+    server, port = llm_server
     assert llm_server.poll() is None
     PROMPT = "1 2 3 4 5 "
     expected_output_prefix = "6 7 8"
@@ -119,7 +120,7 @@ def test_llm_server(llm_server, available_port):
         "Sending HTTP Generation Request"
         + start_log_group("Sending HTTP Generation Request")
     )
-    output = do_generate(PROMPT, available_port)[0]
+    output = do_generate(PROMPT, port)[0]
     # log to GITHUB_STEP_SUMMARY if we are in a GitHub Action
     if "GITHUB_ACTION" in os.environ:
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:

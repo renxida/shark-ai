@@ -120,12 +120,7 @@ def write_config(request, model_test_dir):
 
 
 @pytest.fixture(scope="module")
-def available_port():
-    return find_available_port()
-
-
-@pytest.fixture(scope="module")
-def llm_server(request, model_test_dir, write_config, available_port):
+def llm_server(request, model_test_dir, write_config):
     """Start the LLM server.
 
     Args:
@@ -133,7 +128,6 @@ def llm_server(request, model_test_dir, write_config, available_port):
             - model_file (str): The model file to download.
             - settings (dict): The settings for starting the server.
         model_test_dir (Tuple[Path, Path]): The paths to the Hugging Face home and the temp dir.
-        available_port (int): The available port to start the server on.
 
     Yields:
         subprocess.Popen: The server process that was started.

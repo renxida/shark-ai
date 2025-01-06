@@ -67,11 +67,6 @@ def pre_process_model(request, tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def available_port():
-    return find_available_port()
-
-
-@pytest.fixture(scope="module")
 def start_server(request, pre_process_model):
     os.environ["ROCR_VISIBLE_DEVICES"] = "1"
     device_settings = request.param["device_settings"]
