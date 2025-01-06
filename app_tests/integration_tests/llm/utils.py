@@ -140,7 +140,7 @@ def wait_for_server(url, timeout):
             return
         except requests.exceptions.ConnectionError:
             logger.info(
-                f"Server has not started yet; waited {elapsed} seconds, giving up in timeout: {timeout} seconds."
+                f"Server has not started yet; waited {elapsed} seconds; timeout: {timeout} seconds."
             )
             time.sleep(1)
         elapsed = time.time() - start
