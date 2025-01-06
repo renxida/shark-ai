@@ -150,8 +150,7 @@ def llm_server(request, model_test_dir, write_config, available_port):
     parameters_path = tmp_dir / model_file
 
     # Start llm server
-    server_process = start_llm_server(
-        available_port,
+    server_process, port = start_llm_server(
         tokenizer_path,
         config_path,
         vmfb_path,
@@ -159,7 +158,7 @@ def llm_server(request, model_test_dir, write_config, available_port):
         settings,
     )
     logger.info("LLM server started!" + end_log_group())
-    yield server_process
+    yield server_process, port
     # Teardown: kill the server
     server_process.terminate()
     server_process.wait()

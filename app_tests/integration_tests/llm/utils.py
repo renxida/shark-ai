@@ -173,7 +173,8 @@ def start_llm_server(
     timeout=10,
     multi=False,
 ):
-    logger.info("Starting LLM server...")
+    port = find_available_port()
+    logger.info(f"Starting LLM server on port {port}...")
     if multi:
         server_process = multiprocessing.Process(
             target=subprocess.Popen(
@@ -204,7 +205,7 @@ def start_llm_server(
     logger.info("Process started... waiting for server")
     # Wait for server to start
     wait_for_server(f"http://localhost:{port}", timeout)
-    return server_process
+    return server_process, port
 
 
 def start_log_group(headline):
