@@ -174,7 +174,7 @@ def start_llm_server(
     vmfb_path,
     parameters_path,
     settings,
-    timeout=10,
+    timeout,
     multi=False,
 ):
     port = find_available_port()
