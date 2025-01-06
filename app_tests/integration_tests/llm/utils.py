@@ -139,7 +139,7 @@ def wait_for_server(url, timeout=10):
             return
         except requests.exceptions.ConnectionError:
             time.sleep(1)
-    raise TimeoutError(f"Server did not start within {timeout} seconds")
+    raise TimeoutError(f"Server did not start within {timeout} seconds at {url}")
 
 
 def _start_llm_server_args(
