@@ -129,16 +129,21 @@ def find_available_port():
         return port
 
 
-def wait_for_server(url, timeout=10):
+def wait_for_server(url, timeout):
     logger.info(f"Waiting for server to start at {url}...")
     start = time.time()
-    while time.time() - start < timeout:
+    elapsed = 0
+    while elapsed <= timeout:
         try:
             requests.get(f"{url}/health")
             logger.info("Server successfully started")
             return
         except requests.exceptions.ConnectionError:
+            logger.info(
+                "Server has not started yet; waited {elapsed} seconds, giving up in timeout: {timeout} seconds."
+            )
             time.sleep(1)
+        elapsed = time.time() - start
     raise TimeoutError(f"Server did not start within {timeout} seconds at {url}")
 
 

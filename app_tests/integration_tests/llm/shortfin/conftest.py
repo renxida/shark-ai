@@ -150,6 +150,7 @@ def llm_server(request, model_test_dir, write_config):
         vmfb_path,
         parameters_path,
         settings,
+        timeout=300,
     )
     logger.info("LLM server started!" + end_log_group())
     yield server_process, port
