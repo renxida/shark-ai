@@ -113,7 +113,7 @@ def test_llm_server(llm_server):
     # Here you would typically make requests to your server
     # and assert on the responses
     server, port = llm_server
-    assert llm_server.poll() is None
+    assert server.poll() is None
     PROMPT = "1 2 3 4 5 "
     expected_output_prefix = "6 7 8"
     logger.info(
@@ -171,17 +171,17 @@ def test_llm_server(llm_server):
     raises=AccuracyValidationException,
     reason="Concurreny issues in Shortfin batch processing",
 )
-def test_llm_server_concurrent(llm_server, available_port, concurrent_requests):
+def test_llm_server_concurrent(llm_server, concurrent_requests):
     logger.info("Testing concurrent invocations")
-
-    assert llm_server.poll() is None
+    server, port = llm_server
+    assert server.poll() is None
     PROMPT = "1 2 3 4 5 "
     expected_output_prefix = "6 7 8"
     logger.info(
         "Sending HTTP Generation Request"
         + start_log_group("Sending HTTP Generation Request")
     )
-    outputs = do_generate(PROMPT, available_port, concurrent_requests)
+    outputs = do_generate(PROMPT, port, concurrent_requests)
 
     for output in outputs:
         # log to GITHUB_STEP_SUMMARY if we are in a GitHub Action
