@@ -34,7 +34,8 @@ jobs:
       matrix:
         version: [3.11]
       fail-fast: false
-    runs-on: nodai-amdgpu-mi250-x86-64
+    # runs-on: nodai-amdgpu-mi250-x86-64
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
