@@ -50,10 +50,22 @@ jobs:
         with:
           python-version: ${{matrix.version}}
 
-      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - name: Set Python version without dot
+        run: |
+          echo "PY_VERSION_NO_DOT=$(echo ${{ matrix.version }} | tr -d '.')" >> $GITHUB_ENV
+
+      - name: Download sharktank artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: snapshot-shortfin-linux-x86_64-cp${{ replace(matrix.version, '.', '') }}-cp${{ replace(matrix.version, '.', '') }}
+          name: snapshot-sharktank-linux-x86_64-cp${{ env.PY_VERSION_NO_DOT }}-cp${{ env.PY_VERSION_NO_DOT }}
           path: ${{ env.PACKAGE_DOWNLOAD_DIR }}
+
+      - name: Download shortfin artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: snapshot-shortfin-linux-x86_64-cp${{ env.PY_VERSION_NO_DOT }}-cp${{ env.PY_VERSION_NO_DOT }}
+          path: ${{ env.PACKAGE_DOWNLOAD_DIR }}
+
       - name: Setup venv
         run: |
           ./build_tools/pkgci/setup_venv.py ${VENV_DIR} \
