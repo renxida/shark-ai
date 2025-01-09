@@ -27,8 +27,8 @@ jobs:
         version: [3.11]
       fail-fast: false
     runs-on: nodai-amdgpu-mi250-x86-64
-    # runs-on: ubuntu-latest # everything else works but this errs during model loading
-    # TODO: make this / a copy of this using tiny llamas run on the standard runners
+    # runs-on: ubuntu-latest # everything else works but this throws an "out of resources" during model loading
+    # TODO: make a copy of this that runs on standard runners with tiny llama instead of a 8b model
     defaults:
       run:
         shell: bash
