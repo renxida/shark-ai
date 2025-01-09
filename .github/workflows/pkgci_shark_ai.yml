@@ -72,7 +72,7 @@ jobs:
             --artifact-path=${PACKAGE_DOWNLOAD_DIR} \
             --fetch-gh-workflow=${{ inputs.artifact_run_id }}
 
-      - name: Install nightly IREE packages
+      - name: Install pinned IREE packages
         run: |
           source ${VENV_DIR}/bin/activate
           uv pip install -r requirements-iree-pinned.txt
