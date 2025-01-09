@@ -332,7 +332,9 @@ def main(args):
         print(f"Creating venv at {str(venv_path)}")
 
         subprocess.check_call([sys.executable, "-m", "pip", "install", "uv"])
-        subprocess.check_call(["uv", "venv", str(venv_path), "--python", "3.11"])
+        subprocess.check_call(
+            ["uv", "venv", str(venv_path), "--python", sys.executable]
+        )
         python_exe = find_venv_python(venv_path)
         if not python_exe:
             raise RuntimeError("Error creating venv")
