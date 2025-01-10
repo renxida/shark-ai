@@ -93,7 +93,3 @@ jobs:
         run: |
           source ${VENV_DIR}/bin/activate
           pytest -v -s app_tests/integration_tests/llm/shortfin --log-cli-level=INFO
-
-      - name: Clean up repo to make next checkout faster
-        run: |
-          git clean -ffdx
