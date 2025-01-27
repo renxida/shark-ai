@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/xidaren2/shark-ai/shortfin/python/shortfin_apps/llm/server.py", line 244, in <module>
+    main(
+  File "/home/xidaren2/shark-ai/shortfin/python/shortfin_apps/llm/server.py", line 229, in main
+    sysman = configure(args)
+             ^^^^^^^^^^^^^^^
+  File "/home/xidaren2/shark-ai/shortfin/python/shortfin_apps/llm/server.py", line 116, in configure
+    sysman = SystemManager(
+             ^^^^^^^^^^^^^^
+  File "/home/xidaren2/shark-ai/shortfin/python/shortfin_apps/llm/components/manager.py", line 41, in __init__
+    self.ls = sb.create_system()
+              ^^^^^^^^^^^^^^^^^^
+ValueError: shortfin_iree-src/runtime/src/iree/hal/drivers/hip/hip_driver.c:67: FAILED_PRECONDITION; HIP driver error 'hipErrorNoDevice' (100): no ROCm-capable device is detected

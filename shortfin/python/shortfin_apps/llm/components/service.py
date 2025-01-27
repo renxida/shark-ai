@@ -24,6 +24,11 @@ from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
 from .tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)
+logger.level = logging.DEBUG
+# make logger write to file
+fh = logging.FileHandler("shortfin_service.log")
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
 
 PROG_ISOLATIONS = {
     isolation.name.lower(): isolation for isolation in sf.ProgramIsolation
@@ -247,17 +252,23 @@ class BatcherProcess(sf.Process):
                 len(prefill_request.input_token_ids) / self.page_seq_stride
             )
             # allocate kv cache pages
-            try:
-                allocation = cache.acquire_pages_for_tokens(
-                    prefill_request.input_token_ids,
-                    extra_token_slots=0,  # prefill needs no extra kvcache slots to write to
+            with cache._trie_lock:
+                try:
+                    allocation = cache.acquire_pages_for_tokens(
+                        prefill_request.input_token_ids,
+                        extra_token_slots=0,  # prefill needs no extra kvcache slots to write to
+                    )
+                except CacheAllocationFailure as e:
+                    logger.debug("Cannot fulfill request for %d pages", needed_pages)
+                    raise e
+                logger.debug(
+                    f"Successfully acquired allocation: {allocation} for tokens {prefill_request.input_token_ids}"
                 )
-            except CacheAllocationFailure:
-                logger.debug("Cannot fulfill request for %d pages", needed_pages)
-                continue
-            logger.debug(f"Successfully acquired allocation: {allocation}")
-            prefill_request.free_cache_pages()
-            prefill_request.allocation = allocation
+                logger.debug(
+                    f"Allocated pages: {[pg.index for pg in allocation.pages]}"
+                )
+                prefill_request.free_cache_pages()
+                prefill_request.allocation = allocation
 
             # Can flight this request.
             exec_process.exec_requests.append(prefill_request)
@@ -284,8 +295,13 @@ class BatcherProcess(sf.Process):
             assert decode_request.phase == InferencePhase.DECODE
             if len(exec_process.exec_requests) >= self.ideal_batch_size:
                 break
-            decode_request.allocation.extend_allocation(
-                decode_request.input_token_ids, extra_token_slots=1
+
+            with decode_request.allocation.cache._trie_lock:
+                decode_request.allocation.extend_allocation(
+                    decode_request.input_token_ids, extra_token_slots=1
+                )
+            logger.debug(
+                f"Allocated pages: {[pg.index for pg in decode_request.allocation.pages]}"
             )
 
             # Can flight this request.
@@ -415,6 +431,12 @@ class InferenceExecutorProcess(sf.Process):
                     if i < req_count:
                         m.items = self.exec_requests[i].cache_page_indices(block_count)
             seq_block_ids_host.copy_to(seq_block_ids)
+
+            for i in range(bs):
+                if i < req_count:
+                    print(
+                        f"Batch member {i} has seq block ids: {self.exec_requests[i].cache_page_indices(block_count)} and request id {self.exec_requests[i].rid}"
+                    )
 
             # V1 args:
             #  prefill:

@@ -136,7 +136,13 @@ class ServiceDebugDumper:
             # Save program arguments
             path = dump_path
             args_np = []
-            for i, a in enumerate(args):
+            non_cache_arg_count = 4 if is_decode else 3
+            INCLUDE_CACHE_SLABS = False
+            if not INCLUDE_CACHE_SLABS:
+                args_to_dump = args[:non_cache_arg_count]
+            else:
+                args_to_dump = args
+            for i, a in enumerate(args_to_dump):
                 if isinstance(a, disable_barrier):
                     a = a.delegate()
                 host_array = a.for_transfer()

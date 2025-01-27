@@ -196,23 +196,21 @@ class TriePagedAttentionCacheAllocation(PageAllocation):
                 "Additional work needed here to support publishing incomplete pages to ensure that we finish up a page before attaching child nodes to it."
             )
 
-        # Acquire cache lock for trie modifications
-        with self.cache._trie_lock:  # prevent matching and eviction until we are done
-            cur_node = self.last_cached_node
-            for token_block, page in zip(unpublished_tokens, unpublished_pages):
-                new_node = cur_node.create_child(token_block, page)
-                cur_node = new_node
+        cur_node = self.last_cached_node
+        for token_block, page in zip(unpublished_tokens, unpublished_pages):
+            new_node = cur_node.create_child(token_block, page)
+            cur_node = new_node
 
-            if self.last_cached_node in self.cache.leaves:
-                self.cache.leaves.remove(self.last_cached_node)
-            if cur_node is not self.cache.root:
-                self.cache.leaves.add(cur_node)
+        if self.last_cached_node in self.cache.leaves:
+            self.cache.leaves.remove(self.last_cached_node)
+        if cur_node is not self.cache.root:
+            self.cache.leaves.add(cur_node)
 
-            # Update reference counts
-            if unpublished_tokens:
-                cur_node.ref_count.increment()
-                self.last_cached_node.ref_count.decrement()
-                self.last_cached_node = cur_node
+        # Update reference counts
+        if unpublished_tokens:
+            cur_node.ref_count.increment()
+            self.last_cached_node.ref_count.decrement()
+            self.last_cached_node = cur_node
 
         self.number_of_published_pages = number_of_pages_to_publish
 
@@ -339,15 +337,14 @@ class TriePagedAttentionCache(BasePagedAttentionCache):
         matched_pages = []
         cur = self.root
 
-        with self._trie_lock:
-            for i in range(0, len(tokens), self.tokens_per_page):
-                token_block = tokens[i : i + self.tokens_per_page]
+        for i in range(0, len(tokens), self.tokens_per_page):
+            token_block = tokens[i : i + self.tokens_per_page]
 
-                if token_block not in cur.children:
-                    break
-                cur = cur.children[token_block]
-                cur.access_time = time.monotonic()
-                matched_pages.append(cur.page)
+            if token_block not in cur.children:
+                break
+            cur = cur.children[token_block]
+            cur.access_time = time.monotonic()
+            matched_pages.append(cur.page)
 
         return cur, matched_pages
 
@@ -390,30 +387,29 @@ class TriePagedAttentionCache(BasePagedAttentionCache):
         """
         pages_to_evict = []
 
-        with self._trie_lock:
-            # Initialize heap with unreferenced leaves
-            unused_leaf_heap = [
-                (leaf.access_time, leaf)
-                for leaf in self.leaves
-                if leaf.ref_count.is_empty()
-            ]
-            heapq.heapify(unused_leaf_heap)
+        # Initialize heap with unreferenced leaves
+        unused_leaf_heap = [
+            (leaf.access_time, leaf)
+            for leaf in self.leaves
+            if leaf.ref_count.is_empty()
+        ]
+        heapq.heapify(unused_leaf_heap)
 
-            # Evict least recently used nodes
-            while unused_leaf_heap and len(pages_to_evict) < max_pages:
-                _, leaf = heapq.heappop(unused_leaf_heap)
-                pages_to_evict.append(leaf.page)
-                parent = leaf.parent
-                leaf.unlink()
-                self.leaves.remove(leaf)
+        # Evict least recently used nodes
+        while unused_leaf_heap and len(pages_to_evict) < max_pages:
+            _, leaf = heapq.heappop(unused_leaf_heap)
+            pages_to_evict.append(leaf.page)
+            parent = leaf.parent
+            leaf.unlink()
+            self.leaves.remove(leaf)
 
-                # If parent becomes childless, it becomes a leaf
-                if parent is not self.root and not parent.children:
-                    self.leaves.add(parent)
-                    if parent.ref_count.is_empty():
-                        heapq.heappush(unused_leaf_heap, (parent.access_time, parent))
+            # If parent becomes childless, it becomes a leaf
+            if parent is not self.root and not parent.children:
+                self.leaves.add(parent)
+                if parent.ref_count.is_empty():
+                    heapq.heappush(unused_leaf_heap, (parent.access_time, parent))
 
-            if pages_to_evict:
-                self.page_pool.free_pages(pages_to_evict)
+        if pages_to_evict:
+            self.page_pool.free_pages(pages_to_evict)
 
         return len(pages_to_evict)
