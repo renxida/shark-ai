@@ -54,9 +54,6 @@ TEST_MODELS = {
 def model_artifacts(tmp_path_factory, request):
     """Prepares model artifacts in a cached directory."""
     model_config = TEST_MODELS[request.param]
-    if model_config.source == ModelSource.LOCAL:
-        # skip all local-model tests
-        pytest.skip("Local models not supported in this context")
     cache_key = hashlib.md5(str(model_config).encode()).hexdigest()
 
     cache_dir = tmp_path_factory.mktemp("model_cache")
