@@ -91,8 +91,6 @@ class PagedKVCacheParams:
     # Default: 256
     device_block_count: int
 
-    prefix_sharing_algorithm: str = "none"  # currently supporting none and trie
-
 
 @dataclass_json(undefined=Undefined.RAISE)
 @dataclass
