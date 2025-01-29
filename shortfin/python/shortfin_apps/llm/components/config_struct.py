@@ -231,7 +231,7 @@ class ServerParams:
 
     @staticmethod
     def load(config_path: Optional[Path] = None) -> "ServerParams":
-        """Load server configuration from a file or use defaults.
+        """Create a new ServerParams object by overriding defaults from a `server_config.json` file.
 
         Args:
             config_path: Path to config file.
@@ -239,9 +239,7 @@ class ServerParams:
         Returns:
             ServerParams instance with defaults or loaded values
         """
-        # Start with defaults
         params = ServerParams()
-        # Override with config file if it exists
         if config_path and config_path.exists():
             with open(config_path) as f:
                 file_params = ServerParams.from_json(f.read())
@@ -260,9 +258,10 @@ class ServerParams:
 
         Command line arguments take highest priority.
         """
-        # Only update fields that are present in args
         for field in self.__dataclass_fields__:
             if hasattr(args, field):
                 arg_value = getattr(args, field)
-                if arg_value is not None:  # Only override if arg was provided
+                if (
+                    arg_value is not None
+                ):  # Only override if a cmdline arg of the same name was provided
                     setattr(self, field, arg_value)
