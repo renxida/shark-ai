@@ -1,12 +1,10 @@
 """Handles server lifecycle and configuration."""
-import json
 import socket
 from contextlib import closing
 from dataclasses import dataclass
 import subprocess
 import time
 import requests
-from pathlib import Path
 import sys
 from typing import Optional
 
