@@ -21,7 +21,7 @@ from .kvcache.page_pool import PagePoolConfig, PagePool, PageInfo
 from .config_struct import ModelParams
 from .manager import SystemManager
 from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
-from .server_config import ServerParams
+from .config_structs import ServerParams
 from .tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)
