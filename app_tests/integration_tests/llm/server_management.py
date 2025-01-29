@@ -51,7 +51,6 @@ class ServerInstance:
         self.config = config
         self.process: Optional[subprocess.Popen] = None
         self.port: Optional[int] = None
-        self.config_path: Optional[Path] = None
 
     @staticmethod
     def find_available_port() -> int:
