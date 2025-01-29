@@ -18,10 +18,9 @@ from .kvcache.base_attention_cache import (
 )
 from .kvcache.trie_attention_cache import TriePagedAttentionCache
 from .kvcache.page_pool import PagePoolConfig, PagePool, PageInfo
-from .config_struct import ModelParams
+from .config_struct import ModelParams, ServerParams
 from .manager import SystemManager
 from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
-from .config_structs import ServerParams
 from .tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)

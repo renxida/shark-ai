@@ -24,11 +24,10 @@ import uvicorn
 
 
 from .components.generate import ClientGenerateBatchProcess
-from .components.config_struct import ModelParams
+from .components.config_struct import ModelParams, ServerParams
 from .components.io_struct import GenerateReqInput
 from .components.manager import SystemManager
 from .components.service import GenerateService
-from .components.config_structs import ServerParams
 from .components.tokenizer import Tokenizer
 
 
