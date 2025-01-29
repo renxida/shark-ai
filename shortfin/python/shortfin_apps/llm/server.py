@@ -28,6 +28,7 @@ from .components.config_struct import ModelParams
 from .components.io_struct import GenerateReqInput
 from .components.manager import SystemManager
 from .components.service import GenerateService
+from .components.server_config import ServerParams
 from .components.tokenizer import Tokenizer
 
 
