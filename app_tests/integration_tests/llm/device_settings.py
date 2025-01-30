@@ -23,3 +23,24 @@ GFX942 = DeviceSettings(
     ),
     server_flags=("--device=hip",),
 )
+
+def get_device_based_on_env_variable():
+    import os
+
+    device_name = os.environ.get("SHORTFIN_INTEGRATION_TEST_DEVICE", "cpu").lower()
+
+    table = {
+        "gpu": GFX942,
+        "amdgpu": GFX942,
+        "gfx942": GFX942,
+        "host": CPU,
+        "hostcpu": CPU,
+        "local-task": CPU,
+        "cpu": CPU,
+    }
+    if device_name in table:
+        return table[device_name]
+
+    raise ValueError(
+        f"os.environ['SHORTFIN_INTEGRATION_TEST_DEVICE']=={device_name} but is not recognized. Supported device names: {list(table.keys())}"
+    )

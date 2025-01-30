@@ -40,8 +40,7 @@ def model_artifacts(tmp_path_factory, request):
 @pytest.fixture(scope="module")
 def server(model_artifacts, request):
     """Starts and manages the test server."""
-    model_id = request.param["model"]
-    model_config = TEST_MODELS[model_id]
+    model_config = model_artifacts.model_config
 
     server_config = ServerConfig(
         artifacts=model_artifacts,
