@@ -33,18 +33,14 @@ jobs:
       - name: Determine IREE bump duty engineer
         id: set-duty
         run: |
-          # Define the rotation schedule (GitHub usernames); add yourself into this schedule to get notified when it's your turn.
+          # rotation schedule (GitHub usernames); add yourself into this schedule to get notified when it's your turn.
           ENGINEERS=('renxida')
 
-          # Get the current week number (1-53)
+          # current week number (1-53)
           WEEK=$(date +%V)
 
-          # Calculate index in rotation (0-based)
           INDEX=$(( WEEK % ${#ENGINEERS[@]} ))
-
-          # Get the engineer for this week's IREE bump duty
           DUTY_ENGINEER=${ENGINEERS[$INDEX]}
-
           echo "engineer=$DUTY_ENGINEER" >> $GITHUB_OUTPUT
           echo "This week's IREE bump duty engineer: $DUTY_ENGINEER"
 
