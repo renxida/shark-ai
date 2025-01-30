@@ -7,45 +7,10 @@ from tokenizers import Tokenizer, Encoding
 
 from ..model_management import (
     ModelProcessor,
-    ModelConfig,
-    ModelSource,
-    AzureConfig,
     ModelArtifacts,
+    TEST_MODELS,
 )
 from ..server_management import ServerInstance, ServerConfig
-from .. import device_settings
-
-# Example model configurations
-TEST_MODELS = {
-    "open_llama_3b": ModelConfig(
-        source=ModelSource.HUGGINGFACE,
-        repo_id="SlyEcho/open_llama_3b_v2_gguf",
-        model_file="open-llama-3b-v2-f16.gguf",
-        tokenizer_id="openlm-research/open_llama_3b_v2",
-        batch_sizes=(1, 4),
-        device_settings=device_settings.CPU,
-    ),
-    "llama3.1_8b": ModelConfig(
-        source=ModelSource.HUGGINGFACE,
-        repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
-        model_file="meta-llama-3.1-8b-instruct.f16.gguf",
-        tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
-        batch_sizes=(1, 4),
-        device_settings=device_settings.CPU,
-    ),
-    "azure_llama": ModelConfig(
-        source=ModelSource.AZURE,
-        azure_config=AzureConfig(
-            account_name="sharkblobs",
-            container_name="halo-models",
-            blob_path="llm-dev/llama3_8b/8b_f16.irpa",
-        ),
-        model_file="azure-llama.irpa",
-        tokenizer_id="openlm-research/open_llama_3b_v2",
-        batch_sizes=(1, 4),
-        device_settings=device_settings.CPU,
-    ),
-}
 
 
 @pytest.fixture(scope="module")
