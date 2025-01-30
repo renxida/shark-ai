@@ -29,37 +29,17 @@ class AccuracyValidationException(RuntimeError):
         super().__init__(self.message)
 
 
+@pytest.mark.parameterize("model_artifacts", ["llama3.1_8b", "open_llama_3b"])
+@pytest.mark.parameterize(
+    "server",
+    [
+        {"prefix_sharing": "none"},
+        {"prefix_sharing": "trie"},
+    ],
+)
 class TestLLMServer:
     """Test suite for LLM server functionality."""
 
-    @pytest.mark.parametrize(
-        "model_artifacts,server",
-        [
-            ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "none"}),
-            ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "trie"}),
-            pytest.param(
-                "llama3.1_8b",
-                {"model": "llama3.1_8b", "prefix_sharing": "none"},
-                marks=pytest.mark.skip(
-                    "Skipping meta llama because we haven't set up the model artifact downloading yet."
-                ),
-            ),
-            pytest.param(
-                "llama3.1_8b",
-                {"model": "llama3.1_8b", "prefix_sharing": "trie"},
-                marks=pytest.mark.skip(
-                    "Skipping meta llama because we haven't set up the model artifact downloading yet."
-                ),
-            ),
-        ],
-        ids=[
-            "open_llama_3b_none",
-            "open_llama_3b_trie",
-            "llama31_8b_none",
-            "llama31_8b_trie",
-        ],
-        indirect=True,
-    )
     def test_basic_generation(self, server: tuple[Any, int]) -> None:
         """Tests basic text generation capabilities.
 
@@ -78,44 +58,7 @@ class TestLLMServer:
                 message=f"Generation did not match expected pattern.\nExpected to start with: {expected_prefix}\nActual response: {response}",
             )
 
-    @pytest.mark.parametrize(
-        "model_artifacts,server,encoded_prompt",
-        [
-            (
-                "open_llama_3b",
-                {"model": "open_llama_3b", "prefix_sharing": "none"},
-                "0 1 2 3 4 5 ",
-            ),
-            (
-                "open_llama_3b",
-                {"model": "open_llama_3b", "prefix_sharing": "trie"},
-                "0 1 2 3 4 5 ",
-            ),
-            pytest.param(
-                "llama3.1_8b",
-                {"model": "llama3.1_8b", "prefix_sharing": "none"},
-                "0 1 2 3 4 5 ",
-                marks=pytest.mark.skip(
-                    "Skipping meta llama because we haven't set up the model artifact downloading yet."
-                ),
-            ),
-            pytest.param(
-                "llama3.1_8b",
-                {"model": "llama3.1_8b", "prefix_sharing": "trie"},
-                "0 1 2 3 4 5 ",
-                marks=pytest.mark.skip(
-                    "Skipping meta llama because we haven't set up the model artifact downloading yet."
-                ),
-            ),
-        ],
-        ids=[
-            "open_llama_3b_none_input_ids",
-            "open_llama_3b_trie_input_ids",
-            "llama31_8b_none_input_ids",
-            "llama31_8b_trie_input_ids",
-        ],
-        indirect=True,
-    )
+    @pytest.mark.parametrize("encoded_prompt", ["0 1 2 3 4 5 "])
     def test_basic_generation_input_ids(
         self, server: tuple[Any, int], encoded_prompt
     ) -> None:
@@ -136,14 +79,6 @@ class TestLLMServer:
                 message=f"Generation did not match expected pattern.\nExpected to start with: {expected_prefix}\nActual response: {response}",
             )
 
-    @pytest.mark.parametrize(
-        "model_artifacts,server",
-        [
-            ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "none"}),
-            ("open_llama_3b", {"model": "open_llama_3b", "prefix_sharing": "trie"}),
-        ],
-        indirect=True,
-    )
     @pytest.mark.parametrize("concurrent_requests", [2, 4, 8])
     def test_concurrent_generation(
         self, server: tuple[Any, int], concurrent_requests: int

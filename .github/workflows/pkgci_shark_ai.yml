@@ -25,10 +25,9 @@ jobs:
     strategy:
       matrix:
         version: [3.11]
+        device: ["cpu", "gfx942"]
       fail-fast: false
-    runs-on: azure-cpubuilder-linux-scale
-    # runs-on: ubuntu-latest # everything else works but this throws an "out of resources" during model loading
-    # TODO: make a copy of this that runs on standard runners with tiny llama instead of a 8b model
+    runs-on: ${{ matrix.device == 'cpu' && 'azure-cpubuilder-linux-scale' || 'mi300x-3' }}
     defaults:
       run:
         shell: bash
@@ -77,4 +76,4 @@ jobs:
       - name: Run LLM Integration Tests
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest -v -s app_tests/integration_tests/llm/shortfin --log-cli-level=INFO
+          SHORTFIN_INTEGRATION_TEST_DEVICE=${{ matrix.device }} pytest -v -s app_tests/integration_tests/llm/shortfin --log-cli-level=INFO
