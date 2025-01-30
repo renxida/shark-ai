@@ -29,8 +29,8 @@ class AccuracyValidationException(RuntimeError):
         super().__init__(self.message)
 
 
-@pytest.mark.parameterize("model_artifacts", ["llama3.1_8b"])
-@pytest.mark.parameterize(
+@pytest.mark.parametrize("model_artifacts", ["llama3.1_8b"])
+@pytest.mark.parametrize(
     "server",
     [
         {"prefix_sharing": "none"},
