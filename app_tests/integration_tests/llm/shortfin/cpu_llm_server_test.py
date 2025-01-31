@@ -12,18 +12,20 @@ logger = logging.getLogger(__name__)
 from ..model_management import AccuracyValidationException
 
 
-@pytest.mark.parametrize(
-    "server",
+pytestmark = pytest.mark.parametrize(
+    "model_artifacts,server",
     [
-        {"prefix_sharing": "none"},
-        {"prefix_sharing": "trie"},
+        ["llama3.1_8b", {"prefix_sharing": "none"}],
+        ["llama3.1_8b", {"prefix_sharing": "trie"}],
     ],
+    indirect=True,
 )
-@pytest.mark.parametrize("model_artifacts", ["llama3.1_8b"])
+
+
 class TestLLMServer:
     """Test suite for LLM server functionality."""
 
-    def test_basic_generation(self, model_artifacts, server: tuple[Any, int]) -> None:
+    def test_basic_generation(self, server: tuple[Any, int]) -> None:
         """Tests basic text generation capabilities.
 
         Args:
@@ -43,7 +45,7 @@ class TestLLMServer:
 
     @pytest.mark.parametrize("encoded_prompt", ["0 1 2 3 4 5 "])
     def test_basic_generation_input_ids(
-        self, model_artifacts, server: tuple[Any, int], encoded_prompt
+        self, server: tuple[Any, int], encoded_prompt
     ) -> None:
         """Tests basic text generation capabilities.
 
@@ -64,7 +66,7 @@ class TestLLMServer:
 
     @pytest.mark.parametrize("concurrent_requests", [2, 4, 8])
     def test_concurrent_generation(
-        self, model_artifacts, server: tuple[Any, int], concurrent_requests: int
+        self, server: tuple[Any, int], concurrent_requests: int
     ) -> None:
         """Tests concurrent text generation requests.
 
