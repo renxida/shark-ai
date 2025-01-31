@@ -43,7 +43,7 @@ class TestLLMServer:
                 message=f"Generation did not match expected pattern.\nExpected to start with: {expected_prefix}\nActual response: {response}",
             )
 
-    @pytest.mark.parametrize("encoded_prompt", ["0 1 2 3 4 5 "])
+    @pytest.mark.parametrize("encoded_prompt", ["0 1 2 3 4 5 "], indirect=True)
     def test_basic_generation_input_ids(
         self, server: tuple[Any, int], encoded_prompt
     ) -> None:
