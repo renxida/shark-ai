@@ -29,11 +29,9 @@ jobs:
       fail-fast: false
     runs-on: >-
       ${{
-        {
-          'cpu': 'azure-cpubuilder-linux-scale',
-          'gfx942': 'mi300x-3',
-          'gfx90a': 'nodai-amdgpu-mi250-x86-64'
-        }[matrix.device] || fromJSON('null')
+        matrix.device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
+        matrix.device == 'gfx942' && 'mi300x-3' ||
+        matrix.device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
       }}
     defaults:
       run:
