@@ -25,9 +25,16 @@ jobs:
     strategy:
       matrix:
         version: [3.11]
-        device: ["cpu", "gfx942"]
+        device: ["cpu", "gfx90a"] # temporarily not running on "gfx942" due to contention with other ci tasks
       fail-fast: false
-    runs-on: ${{ matrix.device == 'cpu' && 'azure-cpubuilder-linux-scale' || 'mi300x-3' }}
+    runs-on: >-
+      ${{
+        {
+          'cpu': 'azure-cpubuilder-linux-scale',
+          'gfx942': 'mi300x-3',
+          'gfx90a': 'nodai-amdgpu-mi250-x86-64'
+        }[matrix.device] || fromJSON('null')
+      }}
     defaults:
       run:
         shell: bash
