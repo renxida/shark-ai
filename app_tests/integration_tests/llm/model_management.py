@@ -14,9 +14,21 @@ logger = logging.getLogger(__name__)
 
 
 class AccuracyValidationException(RuntimeError):
-    """Exception raised when accuracy validation fails."""
+    """Custom exception for accuracy validation failures."""
 
-    pass
+    def __init__(
+        self,
+        message: str = None,
+        expected: str = "[[expected generation output not provided]]",
+        actual: str = "[[actual generation output not provided]]",
+    ):
+        self.expected = expected
+        self.actual = actual
+        self.message = (
+            message
+            or f"Output validation failed.\nExpected: {expected}\nActually: {actual}"
+        )
+        super().__init__(self.message)
 
 
 class ModelSource(Enum):
