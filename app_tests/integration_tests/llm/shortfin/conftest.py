@@ -12,11 +12,32 @@ from ..model_management import (
 )
 from ..server_management import ServerInstance, ServerConfig
 
+from ..device_settings import get_device_settings_by_name
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--device_name",
+        action="store",
+        metavar="NAME",
+        default=None,  # you must specify a device to test on
+        help="Select device name to compile models to and run tests on ('cpu', 'gfx90a', 'gfx942', ...); see app_tests/integration_tests/llm/device_settings.py for full list of options.",
+    )
+
+
+@pytest.fixture(scope="session")
+def device_name(request):
+    ret = request.config.option.device_name
+    if ret is None:
+        raise ValueError("--device_name not specified")
+    return ret
+
 
 @pytest.fixture(scope="module")
-def model_artifacts(tmp_path_factory, request):
+def model_artifacts(tmp_path_factory, request, device_name):
     """Prepares model artifacts in a cached directory."""
     model_config = TEST_MODELS[request.param]
+    model_config.device_settings = get_device_settings_by_name(device_name)
     cache_key = hashlib.md5(str(model_config).encode()).hexdigest()
 
     cache_dir = tmp_path_factory.mktemp("model_cache")
