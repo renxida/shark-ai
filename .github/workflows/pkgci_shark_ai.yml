@@ -81,4 +81,4 @@ jobs:
       - name: Run LLM Integration Tests
         run: |
           source ${VENV_DIR}/bin/activate
-          SHORTFIN_INTEGRATION_TEST_DEVICE=${{ matrix.device }} pytest -v -s app_tests/integration_tests/llm/shortfin --log-cli-level=INFO
+          pytest -v -s --device_name==${{ matrix.device }} app_tests/integration_tests/llm/shortfin --log-cli-level=INFO

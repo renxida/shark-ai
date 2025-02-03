@@ -301,7 +301,7 @@ TEST_MODELS = {
         model_file="open-llama-3b-v2-f16.gguf",
         tokenizer_id="openlm-research/open_llama_3b_v2",
         batch_sizes=(1, 4),
-        device_settings=device_settings.get_device_based_on_env_variable(),
+        device_settings=None,
     ),
     "llama3.1_8b": ModelConfig(
         source=ModelSource.HUGGINGFACE,
@@ -309,7 +309,7 @@ TEST_MODELS = {
         model_file="meta-llama-3.1-8b-instruct.f16.gguf",
         tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
         batch_sizes=(1, 4),
-        device_settings=device_settings.get_device_based_on_env_variable(),
+        device_settings=None,
     ),
     "azure_llama": ModelConfig(
         source=ModelSource.AZURE,
@@ -321,6 +321,6 @@ TEST_MODELS = {
         model_file="azure-llama.irpa",
         tokenizer_id="openlm-research/open_llama_3b_v2",
         batch_sizes=(1, 4),
-        device_settings=device_settings.get_device_based_on_env_variable(),
+        device_settings=None,
     ),
 }
