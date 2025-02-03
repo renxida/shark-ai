@@ -25,12 +25,12 @@ jobs:
     strategy:
       matrix:
         version: [3.11]
-        test_device: ["cpu", "gfx90a"] # temporarily not running on "gfx942" due to contention with other ci tasks
+        test_device: ["cpu", "gfx90a", "gfx942"] # temporarily not running on "gfx942" due to contention with other ci tasks
       fail-fast: false
     runs-on: >-
       ${{
         matrix.test_device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
-        matrix.test_device == 'gfx942' && 'mi300x-3' ||
+        matrix.test_device == 'gfx942' && 'mi300' ||
         matrix.test_device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
       }}
     defaults:
