@@ -25,13 +25,13 @@ jobs:
     strategy:
       matrix:
         version: [3.11]
-        device: ["cpu", "gfx90a"] # temporarily not running on "gfx942" due to contention with other ci tasks
+        test_device: ["cpu", "gfx90a"] # temporarily not running on "gfx942" due to contention with other ci tasks
       fail-fast: false
     runs-on: >-
       ${{
-        matrix.device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
-        matrix.device == 'gfx942' && 'mi300x-3' ||
-        matrix.device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
+        matrix.test_device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
+        matrix.test_device == 'gfx942' && 'mi300x-3' ||
+        matrix.test_device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
       }}
     defaults:
       run:
@@ -81,4 +81,4 @@ jobs:
       - name: Run LLM Integration Tests
         run: |
           source ${VENV_DIR}/bin/activate
-          pytest -v -s --device_name=${{ matrix.device }} app_tests/integration_tests/llm/shortfin --log-cli-level=INFO
+          pytest -v -s --test_device=${{ matrix.test_device }} app_tests/integration_tests/llm/shortfin --log-cli-level=INFO

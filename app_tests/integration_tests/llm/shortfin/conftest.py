@@ -17,7 +17,7 @@ from ..device_settings import get_device_settings_by_name
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--device_name",
+        "--test_device",
         action="store",
         metavar="NAME",
         default=None,  # you must specify a device to test on
@@ -26,18 +26,18 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="session")
-def device_name(request):
-    ret = request.config.option.device_name
+def test_device(request):
+    ret = request.config.option.test_device
     if ret is None:
-        raise ValueError("--device_name not specified")
+        raise ValueError("--test_device not specified")
     return ret
 
 
 @pytest.fixture(scope="module")
-def model_artifacts(tmp_path_factory, request, device_name):
+def model_artifacts(tmp_path_factory, request, test_device):
     """Prepares model artifacts in a cached directory."""
     model_config = TEST_MODELS[request.param]
-    model_config.device_settings = get_device_settings_by_name(device_name)
+    model_config.device_settings = get_device_settings_by_name(test_device)
     cache_key = hashlib.md5(str(model_config).encode()).hexdigest()
 
     cache_dir = tmp_path_factory.mktemp("model_cache")
