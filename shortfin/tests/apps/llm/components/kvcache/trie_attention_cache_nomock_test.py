@@ -1,9 +1,7 @@
 import pytest
-from typing import List, Tuple
+from typing import List
 import shortfin as sf
 import shortfin.array as sfnp
-import sys
-import threading
 import time
 import logging
 from dataclasses import dataclass
