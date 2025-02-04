@@ -83,6 +83,7 @@ jobs:
           pip freeze
 
       - name: Login to huggingface
+        continue-on-error: true
         run: huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       - name: Run Shortfin Benchmark Tests
