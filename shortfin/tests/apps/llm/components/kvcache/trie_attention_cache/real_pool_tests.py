@@ -33,23 +33,8 @@ TEST_BLOCK_SIZE = 8
 TEST_POOL_CAPACITY = 256
 
 
-@dataclass
-class TokenSequence:
-    """Helper class for test parameterization"""
-
-    tokens: List[int]
-    description: str
-    expected_pages: int
-    expected_cached: int = 0
-
-    def __str__(self):
-        return self.description
-
-
 # set up logging
 logger = logging.getLogger(__name__)
-
-from shortfin_apps.llm.components.manager import SystemManager
 
 
 @pytest.fixture
@@ -57,14 +42,8 @@ def real_device():
     """Create a real device using the system manager"""
     sc = sf.host.CPUSystemBuilder()
     with sc.create_system() as ls:
-        time.sleep(1)  # the system doesn't seem to be fully initialized immediately
-        logger.info("Creating Worker")
         worker = ls.create_worker("test-worker")
-        logger.info("Created worker %s", worker)
         fiber = ls.create_fiber(worker)
-        logger.info("Created fiber %s", fiber)
-        logger.info("Devices: %s", fiber.devices_dict)
-
         yield list(fiber.devices_dict.values())[0]  # Get the first device
 
 
