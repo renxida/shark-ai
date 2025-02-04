@@ -1,3 +1,12 @@
+"""
+Trie attention cache tests with a real page pool.
+
+This file contains tests that involve writing data to the page. Tests that deal purely with trie cache structure should go in `mock_pool_tests.py`.
+
+Each test requires us to initialize a new page pool & page table device array. Tests here will be a LOT slower.
+"""
+
+
 import pytest
 from typing import List
 import shortfin as sf
