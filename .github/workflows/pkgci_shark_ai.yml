@@ -30,7 +30,7 @@ jobs:
     runs-on: >-
       ${{
         matrix.test_device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
-        matrix.test_device == 'gfx942' && 'mi300' ||
+        matrix.test_device == 'gfx942' && 'linux-mi300-gpu-1' ||
         matrix.test_device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
       }}
     defaults:
