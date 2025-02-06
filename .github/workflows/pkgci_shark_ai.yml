@@ -22,17 +22,21 @@ on:
 jobs:
   test_shortfin_llm_server:
     name: "Integration Tests - Shortfin LLM Server"
+    runs-on: ${{ matrix.runs-on }}
     strategy:
+      fail-fast: false
       matrix:
         version: [3.11]
-        test_device: ["cpu", "gfx90a", "gfx942"] # temporarily not running on "gfx942" due to contention with other ci tasks
-      fail-fast: false
-    runs-on: >-
-      ${{
-        matrix.test_device == 'cpu' && 'azure-cpubuilder-linux-scale' ||
-        matrix.test_device == 'gfx942' && 'linux-mi300-gpu-1' ||
-        matrix.test_device == 'gfx90a' && 'nodai-amdgpu-mi250-x86-64'
-      }}
+        include:
+          - name: cpu
+            runs-on: azure-cpubuilder-linux-scale
+          - name: amdgpu_rocm_mi300_gfx942
+            runs-on: linux-mi300-gpu-1
+            test_device: gfx942
+          - name: amdgpu_rocm_mi250_gfx90a
+            runs-on: nodai-amdgpu-mi250-x86-64
+            test_device: gfx90a
+
     defaults:
       run:
         shell: bash
@@ -41,9 +45,8 @@ jobs:
       VENV_DIR: ${{ github.workspace }}/.venv
     steps:
       - name: Run rocminfo
-        continue-on-error: true
-        run: |
-          rocminfo || echo "rocminfo not available"
+        if: contains(matrix.test_device, 'gfx')
+        run: rocminfo
       - name: "Checkout Code"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Setting up Python"
