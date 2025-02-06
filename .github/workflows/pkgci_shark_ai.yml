@@ -30,6 +30,7 @@ jobs:
         include:
           - name: cpu
             runs-on: azure-cpubuilder-linux-scale
+            test_device: cpu
           - name: amdgpu_rocm_mi300_gfx942
             runs-on: linux-mi300-gpu-1
             test_device: gfx942
