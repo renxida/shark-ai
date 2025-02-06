@@ -34,9 +34,10 @@ jobs:
           - name: amdgpu_rocm_mi300_gfx942
             runs-on: linux-mi300-gpu-1
             test_device: gfx942
-          - name: amdgpu_rocm_mi250_gfx90a
-            runs-on: nodai-amdgpu-mi250-x86-64
-            test_device: gfx90a
+          # temporarily disable mi250 because the cluster is unsable & slow
+          # - name: amdgpu_rocm_mi250_gfx90a
+          #   runs-on: nodai-amdgpu-mi250-x86-64
+          #   test_device: gfx90a
 
     defaults:
       run:
