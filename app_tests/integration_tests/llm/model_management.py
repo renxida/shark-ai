@@ -5,12 +5,15 @@ import subprocess
 from dataclasses import dataclass
 from typing import Optional, Tuple, Dict
 from enum import Enum, auto
+from huggingface_hub import snapshot_download
 
 from sharktank.utils.hf_datasets import Dataset, RemoteFile, get_dataset
 
 from . import device_settings
 
 logger = logging.getLogger(__name__)
+
+LLAMA_CPP_LOCATION = Path("/tmp/llama.cpp")
 
 
 class AccuracyValidationException(RuntimeError):
@@ -35,6 +38,7 @@ class ModelSource(Enum):
     HUGGINGFACE = auto()
     LOCAL = auto()
     AZURE = auto()
+    HUGGINGFACE_TO_GGUF_TO_IRPA = auto()
 
 
 @dataclass
@@ -71,6 +75,11 @@ class ModelConfig:
             raise ValueError("local_path required for local models")
         elif self.source == ModelSource.AZURE and not self.azure_config:
             raise ValueError("azure_config required for Azure models")
+        elif self.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+            if not self.repo_id:
+                raise ValueError(
+                    "repo_id required for HUGGINGFACE_TO_GGUF_TO_IRPA models"
+                )
 
 
 @dataclass
@@ -108,6 +117,8 @@ class ModelStageManager:
                 / "azure"
                 / self.config.azure_config.blob_path.replace("/", "_")
             )
+        elif self.config.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+            return self.base_dir / self.config.repo_id.replace("/", "_")
         raise ValueError(f"Unsupported model source: {self.config.source}")
 
     def _download_from_huggingface(self) -> Path:
@@ -143,12 +154,71 @@ class ModelStageManager:
 
         return model_path
 
+    def _download_and_convert_from_huggingface(self) -> Path:
+        """Downloads model from HuggingFace and converts through GGUF to IRPA."""
+        irpa_path = self.model_dir / "model.irpa"
+
+        if not irpa_path.exists():
+            logger.info(
+                f"Processing model {self.config.repo_id} from HuggingFace through GGUF to IRPA"
+            )
+
+            # Step 1: Download from HuggingFace
+            hf_model_path = self.model_dir / "model_hf_repo_clone"
+            if not hf_model_path.exists():
+                logger.info(
+                    f"Downloading model from HuggingFace: {self.config.repo_id}"
+                )
+                snapshot_download(
+                    repo_id=self.config.repo_id,
+                    local_dir=hf_model_path,
+                    local_dir_use_symlinks=False,
+                    revision="main",
+                )
+
+            # Step 2: Convert to GGUF
+            gguf_path = self.model_dir / "model.gguf"
+            if not gguf_path.exists():
+                logger.info("Converting model to GGUF format")
+                subprocess.run(
+                    [
+                        "python",
+                        LLAMA_CPP_LOCATION / "convert_hf_to_gguf.py",
+                        hf_model_path,
+                        "--outfile",
+                        str(gguf_path),
+                        "--outtype",
+                        "f32",
+                    ],
+                    check=True,
+                )
+
+            # Step 3: Convert to IRPA
+            logger.info("Converting GGUF to IRPA format")
+            subprocess.run(
+                [
+                    "python",
+                    "-m",
+                    "sharktank.tools.dump_gguf",
+                    f"--gguf-file={gguf_path}",
+                    "--save",
+                    str(irpa_path),
+                ],
+                check=True,
+            )
+
+            # Cleanup intermediate files if desired
+            # shutil.rmtree(hf_model_path)
+            # gguf_path.unlink()
+
+        return irpa_path
+
     def _copy_from_local(self) -> Path:
         """Copies model from local filesystem."""
-        import shutil
-
         model_path = self.model_dir / self.config.model_file
         if not model_path.exists():
+            import shutil
+
             logger.info(f"Copying local model from {self.config.local_path}")
             shutil.copy2(self.config.local_path, model_path)
         return model_path
@@ -273,6 +343,8 @@ class ModelProcessor:
             weights_path = manager._copy_from_local()
         elif config.source == ModelSource.AZURE:
             weights_path = manager._download_from_azure()
+        elif config.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+            weights_path = manager._download_and_convert_from_huggingface()
         else:
             raise ValueError(f"Unsupported model source: {config.source}")
 
@@ -323,4 +395,44 @@ TEST_MODELS = {
         batch_sizes=(1, 4),
         device_settings=None,
     ),
+    "tiny_stories_direct": ModelConfig(
+        source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
+        repo_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        model_file="model.irpa",  # This will be the final converted file name
+        tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        batch_sizes=(1, 4),
+        device_settings=None,
+    ),
 }
+
+
+# test like so
+# from pathlib import Path
+# import sys
+# sys.path.append("/home/xidaren2/shark-ai")
+
+
+# from app_tests.integration_tests.llm.model_management import ModelConfig, ModelSource, ModelProcessor
+# from app_tests.integration_tests.llm.device_settings import GFX942
+
+# # Setup base directory
+# base_dir = Path("./model_artifacts")
+# base_dir.mkdir(exist_ok=True)
+
+# # Configure model
+# config = ModelConfig(
+#     source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
+#     repo_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+#     model_file="model.irpa",
+#     tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+#     batch_sizes=(1, 4),
+#     device_settings=GFX942
+# )
+
+# # Process model
+# processor = ModelProcessor(base_dir)
+# artifacts = processor.process_model(config)
+
+# # Print results
+# print(f"Artifacts location: {base_dir}")
+# print(f"VMFB path: {artifacts.vmfb_path}")
