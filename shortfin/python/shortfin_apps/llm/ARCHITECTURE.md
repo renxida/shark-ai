@@ -2,9 +2,9 @@
 
 Roughly, this is the lifecycle of a request coming from a client.
 
-`server.py` attaches a fastapi client to `components/service.py`
+[server.py](https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/server.py) attaches a fastapi client to [components/service.py](https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/service.py)
 
-`service.py` invokes the program loaded from VMFB at the `await fn` line (ctrl+f `await fn` to find it).
+`service.py` invokes the program loaded from VMFB at the `await fn` line (see [service.py#L463](https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/service.py#L463)).
 
 Everything in between is documented in this diagram below:
 
@@ -24,6 +24,13 @@ sequenceDiagram
     box kvcache/trie_attention_cache.py
     participant Cache as TriePagedAttentionCache<br/>(KV cache with prefix sharing)
     end
+
+    link ClientBatch: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/generate.py#L90
+    link GenItem: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/generate.py#L26
+    link Batcher: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/service.py#L153
+    link Executor: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/service.py#L309
+    link Service: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/service.py#L36
+    link Cache: Source @ https://github.com/nod-ai/shark-ai/blob/4c90a63e5f5de77f5356be16096b104e8ec4ddb0/shortfin/python/shortfin_apps/llm/components/kvcache/trie_attention_cache.py
 
     Client->>ClientBatch: Create generation request
     Note over ClientBatch: Tokenize input if needed
@@ -59,4 +66,3 @@ sequenceDiagram
     GenItem-->>ClientBatch: Complete generation
     Note over GenItem: free_cache_pages()
     ClientBatch-->>Client: Return final response
-```
