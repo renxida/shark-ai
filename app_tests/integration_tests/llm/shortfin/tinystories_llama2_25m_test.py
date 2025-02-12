@@ -25,6 +25,11 @@ pytestmark = pytest.mark.parametrize(
 )
 
 
+# goldens are generated in: https://colab.research.google.com/drive/1pFiyvyIxk1RsHnw5gTk_gu9QiQNy9gfW?usp=sharing
+GOLDEN_PROMPT = "Once upon a time"
+GOLDEN_RESPONSE = ", there was a little girl named Lily."
+
+
 class TestLLMServer:
     """Test suite for LLM server functionality."""
 
@@ -36,10 +41,9 @@ class TestLLMServer:
         """
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
-        expected_prefix = "to"
-        response = self._generate(
-            "Alice was so tired when she got back home so she went ", port
-        )
+        prompt = GOLDEN_PROMPT
+        expected_prefix = GOLDEN_RESPONSE
+        response = self._generate(prompt, port)
         if not expected_prefix in response:
             raise AccuracyValidationException(
                 expected=f"{expected_prefix}...",
@@ -60,8 +64,8 @@ class TestLLMServer:
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
 
-        prompt = "Alice was so tired when she got back home so she went "
-        expected_prefix = "to"
+        prompt = GOLDEN_PROMPT
+        expected_prefix = GOLDEN_RESPONSE
 
         with ThreadPoolExecutor(max_workers=concurrent_requests) as executor:
             futures = [
