@@ -455,7 +455,8 @@ TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
 )
 
 
-# test like so
+# Usage example
+# This uses a small model that takes roughly 2 minutes to run
 # from pathlib import Path
 # import sys
 # sys.path.append("/home/xidaren2/shark-ai")
