@@ -453,36 +453,3 @@ TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
     batch_sizes=(1, 4),
     device_settings=None,
 )
-
-
-# Usage example
-# This uses a small model that takes roughly 2 minutes to run
-# from pathlib import Path
-# import sys
-# sys.path.append("/home/xidaren2/shark-ai")
-
-
-# from app_tests.integration_tests.llm.model_management import ModelConfig, ModelSource, ModelProcessor
-# from app_tests.integration_tests.llm.device_settings import GFX942
-
-# # Setup base directory
-# base_dir = Path("./model_artifacts")
-# base_dir.mkdir(exist_ok=True)
-
-# # Configure model
-# config = ModelConfig(
-#     source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
-#     repo_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-#     model_file="model.irpa",
-#     tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-#     batch_sizes=(1, 4),
-#     device_settings=GFX942
-# )
-
-# # Process model
-# processor = ModelProcessor(base_dir)
-# artifacts = processor.process_model(config)
-
-# # Print results
-# print(f"Artifacts location: {base_dir}")
-# print(f"VMFB path: {artifacts.vmfb_path}")
