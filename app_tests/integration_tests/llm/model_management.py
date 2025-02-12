@@ -1,9 +1,12 @@
 """Module for managing model artifacts through various processing stages."""
 import logging
+import tempfile
+import zipfile
+import urllib.request
 from pathlib import Path
 import subprocess
 from dataclasses import dataclass
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple
 from enum import Enum, auto
 from huggingface_hub import snapshot_download
 
@@ -13,7 +16,36 @@ from . import device_settings
 
 logger = logging.getLogger(__name__)
 
-LLAMA_CPP_LOCATION = Path("/tmp/llama.cpp")
+
+def get_llama_cpp_path() -> Path:
+    """Downloads and extracts llama.cpp if needed, returns path to installation."""
+    # Use system temp directory as base
+    temp_base = Path(tempfile.gettempdir()) / "sharktank_llamacpp"
+    llama_cpp_dir = temp_base / "llama.cpp-b4696"
+
+    # Only download and extract if not already present
+    if not llama_cpp_dir.exists():
+        temp_base.mkdir(parents=True, exist_ok=True)
+        zip_path = temp_base / "llama.cpp.zip"
+
+        # Download zip file
+        logger.info("Downloading llama.cpp...")
+        urllib.request.urlretrieve(
+            "https://github.com/ggerganov/llama.cpp/archive/refs/tags/b4696.zip",
+            zip_path,
+        )
+
+        # Extract zip file
+        logger.info("Extracting llama.cpp...")
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(temp_base)
+
+        # Clean up zip file
+        zip_path.unlink()
+
+        logger.info(f"llama.cpp installed at {llama_cpp_dir}")
+
+    return llama_cpp_dir
 
 
 class AccuracyValidationException(RuntimeError):
@@ -76,9 +108,9 @@ class ModelConfig:
         elif self.source == ModelSource.AZURE and not self.azure_config:
             raise ValueError("azure_config required for Azure models")
         elif self.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
-            if not self.repo_id:
+            if not self.dataset_name:
                 raise ValueError(
-                    "repo_id required for HUGGINGFACE_TO_GGUF_TO_IRPA models"
+                    "dataset_name required for HUGGINGFACE_TO_GGUF_TO_IRPA models"
                 )
 
 
@@ -118,7 +150,7 @@ class ModelStageManager:
                 / self.config.azure_config.blob_path.replace("/", "_")
             )
         elif self.config.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
-            return self.base_dir / self.config.repo_id.replace("/", "_")
+            return self.base_dir / self.config.dataset_name.replace("/", "_")
         raise ValueError(f"Unsupported model source: {self.config.source}")
 
     def _download_from_huggingface(self) -> Path:
@@ -169,12 +201,8 @@ class ModelStageManager:
                 logger.info(
                     f"Downloading model from HuggingFace: {self.config.repo_id}"
                 )
-                snapshot_download(
-                    repo_id=self.config.repo_id,
-                    local_dir=hf_model_path,
-                    local_dir_use_symlinks=False,
-                    revision="main",
-                )
+                dataset = get_dataset(self.config.dataset_name)
+                downloaded_files = dataset.download(local_dir=self.model_dir)
 
             # Step 2: Convert to GGUF
             gguf_path = self.model_dir / "model.gguf"
@@ -183,8 +211,8 @@ class ModelStageManager:
                 subprocess.run(
                     [
                         "python",
-                        LLAMA_CPP_LOCATION / "convert_hf_to_gguf.py",
-                        hf_model_path,
+                        get_llama_cpp_path() / "convert_hf_to_gguf.py",
+                        self.model_dir,
                         "--outfile",
                         str(gguf_path),
                         "--outtype",
@@ -366,44 +394,65 @@ class ModelProcessor:
         )
 
 
-TEST_MODELS = {
-    "open_llama_3b": ModelConfig(
-        source=ModelSource.HUGGINGFACE,
-        repo_id="SlyEcho/open_llama_3b_v2_gguf",
-        model_file="open-llama-3b-v2-f16.gguf",
-        tokenizer_id="openlm-research/open_llama_3b_v2",
-        batch_sizes=(1, 4),
-        device_settings=None,
+TEST_MODELS = {}
+
+TEST_MODELS["open_llama_3b"] = ModelConfig(
+    source=ModelSource.HUGGINGFACE,
+    repo_id="SlyEcho/open_llama_3b_v2_gguf",
+    model_file="open-llama-3b-v2-f16.gguf",
+    tokenizer_id="openlm-research/open_llama_3b_v2",
+    batch_sizes=(1, 4),
+    device_settings=None,
+)
+
+TEST_MODELS["llama3.1_8b"] = ModelConfig(
+    source=ModelSource.HUGGINGFACE,
+    repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
+    model_file="meta-llama-3.1-8b-instruct.f16.gguf",
+    tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
+    batch_sizes=(1, 4),
+    device_settings=None,
+)
+TEST_MODELS[
+    "azure_llama"
+] = ModelConfig(  # This model is currently unused. When you use it, check to make sure the irpa indeed still exist and remove this comment.
+    source=ModelSource.AZURE,
+    azure_config=AzureConfig(
+        account_name="sharkblobs",
+        container_name="halo-models",
+        blob_path="llm-dev/llama3_8b/8b_f16.irpa",
     ),
-    "llama3.1_8b": ModelConfig(
-        source=ModelSource.HUGGINGFACE,
-        repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
-        model_file="meta-llama-3.1-8b-instruct.f16.gguf",
-        tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
-        batch_sizes=(1, 4),
-        device_settings=None,
+    model_file="azure-llama.irpa",
+    tokenizer_id="openlm-research/open_llama_3b_v2",
+    batch_sizes=(1, 4),
+    device_settings=None,
+)
+
+Dataset(
+    "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+    (
+        RemoteFile(
+            filename,
+            "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+            filename,
+        )
+        for filename in (
+            "model.safetensors",
+            "tokenizer.json",
+            "tokenizer_config.json",
+            "config.json",
+        )
     ),
-    "azure_llama": ModelConfig(
-        source=ModelSource.AZURE,
-        azure_config=AzureConfig(
-            account_name="sharkblobs",
-            container_name="halo-models",
-            blob_path="llm-dev/llama3_8b/8b_f16.irpa",
-        ),
-        model_file="azure-llama.irpa",
-        tokenizer_id="openlm-research/open_llama_3b_v2",
-        batch_sizes=(1, 4),
-        device_settings=None,
-    ),
-    "tiny_stories_direct": ModelConfig(
-        source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
-        repo_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-        model_file="model.irpa",  # This will be the final converted file name
-        tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-        batch_sizes=(1, 4),
-        device_settings=None,
-    ),
-}
+)
+
+TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
+    source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
+    dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+    model_file="model.irpa",  # This will be the final converted file name
+    tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+    batch_sizes=(1, 4),
+    device_settings=None,
+)
 
 
 # test like so
