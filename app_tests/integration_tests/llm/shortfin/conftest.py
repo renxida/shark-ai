@@ -16,6 +16,11 @@ from ..device_settings import get_device_settings_by_name
 
 import shortfin_apps.llm.server as server_module
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -61,7 +66,7 @@ def model_artifacts(tmp_path_factory, request, test_device):
 
 
 @pytest.fixture(scope="module")
-def server(model_artifacts, request):
+def full_fastapi_server(model_artifacts, request):
     """Starts and manages the test server."""
     model_config = model_artifacts.model_config
 
@@ -72,40 +77,12 @@ def server(model_artifacts, request):
     )
 
     server_instance = ServerInstance(server_config)
-    server_instance.start()
+    server_instance.start_full_fastapi_server()
     process, port = server_instance.process, server_instance.port
     yield process, port
 
     process.terminate()
     process.wait()
-
-
-def generate_service(
-    model_artifacts, request
-) -> "shortfin_apps.llm.components.service.GenerateService":
-    """
-    like server, but no fastapi,
-
-    this yields a service object that gives access to shortfin while bypassing fastapi
-    """
-
-    model_config = model_artifacts.model_config
-
-    server_config = ServerConfig(
-        artifacts=model_artifacts,
-        device_settings=model_config.device_settings,
-        prefix_sharing_algorithm=request.param.get("prefix_sharing", "none"),
-    )
-
-    argv = ServerInstance.get_server_args(server_config)
-    args = server_module.parse_args(argv)
-    server_module.sysman = server_module.configure(args)
-
-    # lifespan() is a context manager that calls GenerateService.start() and GenerateService.stop() on enter and exit
-    # GenerateService.start() will launch the batcher process.
-    # TODO: consider providing a version that yields the service without starting it
-    with server_module.lifespan():  # this would take care of cleanup automatically when pytest shuts down
-        yield server_module.service
 
 
 @pytest.fixture(scope="module")

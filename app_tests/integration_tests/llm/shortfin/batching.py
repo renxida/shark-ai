@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 import math
-
+import pytest
 import shortfin as sf
 import shortfin.array as sfnp
 from shortfin_apps.llm.components.service import (
@@ -53,6 +53,15 @@ service.load_inference_parameters(weights_path, parameter_scope="model")
 service.start()
 
 from shortfin_apps.llm.components.messages import InferenceExecRequest, InferencePhase
+
+pytestmark = pytest.mark.parametrize(
+    "model_artifacts,server",
+    [
+        ["llama3.1_8b", {"prefix_sharing": "none"}],
+        ["llama3.1_8b", {"prefix_sharing": "trie"}],
+    ],
+    indirect=True,
+)
 
 
 def test_batch_sizes_same_inputs_same_outputs():

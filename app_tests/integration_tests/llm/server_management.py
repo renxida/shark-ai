@@ -1,6 +1,6 @@
 """Handles server lifecycle and configuration."""
 import socket
-from contextlib import closing
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 import subprocess
 import time
@@ -10,6 +10,11 @@ from typing import Optional
 
 from .device_settings import DeviceSettings
 from .model_management import ModelArtifacts
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -70,7 +75,7 @@ class ServerInstance:
             f"--prefix_sharing_algorithm={config.prefix_sharing_algorithm}",
         ] + config.device_settings.server_flags
 
-    def start(self) -> None:
+    def start_full_fastapi_server(self) -> None:
         """Starts the server process."""
         if self.process is not None:
             raise RuntimeError("Server is already running")
@@ -82,6 +87,55 @@ class ServerInstance:
 
         self.process = subprocess.Popen(cmd)
         self.wait_for_ready()
+
+    @contextmanager
+    def start_generate_service(
+        model_artifacts, request
+    ) -> "shortfin_apps.llm.components.service.GenerateService":
+        """
+        like server, but no fastapi,
+
+        this yields a service object that gives access to shortfin while bypassing fastapi
+
+        use like so:
+
+        ```
+        with instance.start_generate_service(model_artifacts, request) as service:
+            # run tests with service
+            ...
+        ```
+        """
+
+        model_config = model_artifacts.model_config
+
+        server_config = ServerConfig(
+            artifacts=model_artifacts,
+            device_settings=model_config.device_settings,
+            prefix_sharing_algorithm=request.param.get("prefix_sharing", "none"),
+        )
+
+        from shortfin_apps.llm import server as server_module
+
+        argv = ServerInstance.get_server_args(server_config)
+        args = server_module.parse_args(argv)
+        server_module.sysman = server_module.configure(args)
+        sysman = server_module.sysman
+        services = server_module.services
+        # sysman.start()
+        try:
+            for service_name, service in sysman.services.items():
+                logging.info("Initializing service '%s': %r", service_name, service)
+                service.start()
+        except:
+            sysman.shutdown()
+            raise
+        yield sysman.services["default"]
+        try:
+            for service_name, service in services.items():
+                logging.info("Shutting down service '%s'", service_name)
+                service.shutdown()
+        finally:
+            sysman.shutdown()
 
     def wait_for_ready(self, timeout: int = 30) -> None:
         """Waits for server to be ready and responding to health checks."""
