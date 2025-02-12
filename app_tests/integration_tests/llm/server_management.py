@@ -58,6 +58,18 @@ class ServerInstance:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             return s.getsockname()[1]
 
+    @staticmethod
+    def get_server_args(config: ServerConfig) -> list[str]:
+        """Returns the command line arguments for the server."""
+        return [
+            f"--tokenizer_json={config.artifacts.tokenizer_path}",
+            f"--model_config={config.artifacts.config_path}",
+            f"--vmfb={config.artifacts.vmfb_path}",
+            f"--parameters={config.artifacts.weights_path}",
+            f"--port={config.port}",
+            f"--prefix_sharing_algorithm={config.prefix_sharing_algorithm}",
+        ] + config.device_settings.server_flags
+
     def start(self) -> None:
         """Starts the server process."""
         if self.process is not None:
@@ -65,18 +77,8 @@ class ServerInstance:
 
         self.port = self.find_available_port()
 
-        cmd = [
-            sys.executable,
-            "-m",
-            "shortfin_apps.llm.server",
-            f"--tokenizer_json={self.config.artifacts.tokenizer_path}",
-            f"--model_config={self.config.artifacts.config_path}",
-            f"--vmfb={self.config.artifacts.vmfb_path}",
-            f"--parameters={self.config.artifacts.weights_path}",
-            f"--port={self.port}",
-            f"--prefix_sharing_algorithm={self.config.prefix_sharing_algorithm}",
-        ]
-        cmd.extend(self.config.device_settings.server_flags)
+        cmd = [sys.executable, "-m", "shortfin_apps.llm.server"]
+        cmd.extend(self.get_server_args(self.config))
 
         self.process = subprocess.Popen(cmd)
         self.wait_for_ready()
