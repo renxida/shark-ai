@@ -8,7 +8,6 @@ import subprocess
 from dataclasses import dataclass
 from typing import Optional, Tuple
 from enum import Enum, auto
-from huggingface_hub import snapshot_download
 
 from sharktank.utils.hf_datasets import Dataset, RemoteFile, get_dataset
 
@@ -428,6 +427,7 @@ TEST_MODELS[
     device_settings=None,
 )
 
+# TODO: upstream this to sharktank
 Dataset(
     "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
     (
