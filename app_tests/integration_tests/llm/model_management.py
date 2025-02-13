@@ -67,10 +67,10 @@ class AccuracyValidationException(RuntimeError):
 
 
 class ModelSource(Enum):
-    HUGGINGFACE = auto()
+    HUGGINGFACE_FROM_GGUF = auto()
     LOCAL = auto()
     AZURE = auto()
-    HUGGINGFACE_TO_GGUF_TO_IRPA = auto()
+    HUGGINGFACE_FROM_SAFETENSORS = auto()
 
 
 @dataclass
@@ -98,7 +98,7 @@ class ModelConfig:
     azure_config: Optional[AzureConfig] = None
 
     def __post_init__(self):
-        if self.source == ModelSource.HUGGINGFACE:
+        if self.source == ModelSource.HUGGINGFACE_FROM_GGUF:
             if not (self.dataset_name or self.repo_id):
                 raise ValueError(
                     "Either dataset_name or repo_id required for HuggingFace models"
@@ -107,10 +107,10 @@ class ModelConfig:
             raise ValueError("local_path required for local models")
         elif self.source == ModelSource.AZURE and not self.azure_config:
             raise ValueError("azure_config required for Azure models")
-        elif self.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+        elif self.source == ModelSource.HUGGINGFACE_FROM_SAFETENSORS:
             if not self.dataset_name:
                 raise ValueError(
-                    "dataset_name required for HUGGINGFACE_TO_GGUF_TO_IRPA models"
+                    "dataset_name required for HUGGINGFACE_FROM_SAFETENSORS models"
                 )
 
 
@@ -137,7 +137,7 @@ class ModelStageManager:
 
     def _get_model_dir(self) -> Path:
         """Creates and returns appropriate model directory based on source."""
-        if self.config.source == ModelSource.HUGGINGFACE:
+        if self.config.source == ModelSource.HUGGINGFACE_FROM_GGUF:
             if self.config.dataset_name:
                 return self.base_dir / self.config.dataset_name.replace("/", "_")
             return self.base_dir / self.config.repo_id.replace("/", "_")
@@ -149,7 +149,7 @@ class ModelStageManager:
                 / "azure"
                 / self.config.azure_config.blob_path.replace("/", "_")
             )
-        elif self.config.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+        elif self.config.source == ModelSource.HUGGINGFACE_FROM_SAFETENSORS:
             return self.base_dir / self.config.dataset_name.replace("/", "_")
         raise ValueError(f"Unsupported model source: {self.config.source}")
 
@@ -365,13 +365,13 @@ class ModelProcessor:
         manager = ModelStageManager(self.base_dir, config)
 
         # Stage 1: Download weights and tokenizer (cached)
-        if config.source == ModelSource.HUGGINGFACE:
+        if config.source == ModelSource.HUGGINGFACE_FROM_GGUF:
             weights_path = manager._download_from_huggingface()
         elif config.source == ModelSource.LOCAL:
             weights_path = manager._copy_from_local()
         elif config.source == ModelSource.AZURE:
             weights_path = manager._download_from_azure()
-        elif config.source == ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA:
+        elif config.source == ModelSource.HUGGINGFACE_FROM_SAFETENSORS:
             weights_path = manager._download_and_convert_from_huggingface()
         else:
             raise ValueError(f"Unsupported model source: {config.source}")
@@ -397,7 +397,7 @@ class ModelProcessor:
 TEST_MODELS = {}
 
 TEST_MODELS["open_llama_3b"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE,
+    source=ModelSource.HUGGINGFACE_FROM_GGUF,
     repo_id="SlyEcho/open_llama_3b_v2_gguf",
     model_file="open-llama-3b-v2-f16.gguf",
     tokenizer_id="openlm-research/open_llama_3b_v2",
@@ -406,7 +406,7 @@ TEST_MODELS["open_llama_3b"] = ModelConfig(
 )
 
 TEST_MODELS["llama3.1_8b"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE,
+    source=ModelSource.HUGGINGFACE_FROM_GGUF,
     repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
     model_file="meta-llama-3.1-8b-instruct.f16.gguf",
     tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
@@ -432,21 +432,19 @@ Dataset(
     "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
     (
         RemoteFile(
-            filename,
-            "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-            filename,
-        )
-        for filename in (
-            "model.safetensors",
-            "tokenizer.json",
-            "tokenizer_config.json",
-            "config.json",
+            file_id = "model.safetensors",
+            repo_id = "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+            extra_filenames =  (
+                "config.json",
+                "tokenizer.json",
+                "tokenizer_config.json",
+            ),
         )
     ),
 )
 
 TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_TO_GGUF_TO_IRPA,
+    source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
     dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
     model_file="model.irpa",  # This will be the final converted file name
     tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
