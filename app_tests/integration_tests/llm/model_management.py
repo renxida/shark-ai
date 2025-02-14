@@ -433,6 +433,7 @@ Dataset(
     (
         RemoteFile(
             file_id = "model.safetensors",
+            filename= "model.safetensors",
             repo_id = "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
             extra_filenames =  (
                 "config.json",
