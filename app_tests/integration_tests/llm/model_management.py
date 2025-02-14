@@ -191,14 +191,14 @@ class ModelStageManager:
 
         if not irpa_path.exists():
             logger.info(
-                f"Processing model {self.config.repo_id} from HuggingFace through GGUF to IRPA"
+                f"Processing model `{self.config.dataset_name}` from HuggingFace through GGUF to IRPA"
             )
 
             # Step 1: Download from HuggingFace
             hf_model_path = self.model_dir / "model_hf_repo_clone"
             if not hf_model_path.exists():
                 logger.info(
-                    f"Downloading model from HuggingFace: {self.config.repo_id}"
+                    f"Downloading model from HuggingFace: `{self.config.dataset_name}`"
                 )
                 dataset = get_dataset(self.config.dataset_name)
                 downloaded_files = dataset.download(local_dir=self.model_dir)
