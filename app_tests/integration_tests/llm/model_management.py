@@ -430,18 +430,18 @@ TEST_MODELS[
 # TODO: upstream this to sharktank
 Dataset(
     "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-    files = [
+    files=[
         RemoteFile(
-            file_id = "model.safetensors",
-            filename= "model.safetensors",
-            repo_id = "Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-            extra_filenames =  (
+            file_id="model.safetensors",
+            filename="model.safetensors",
+            repo_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+            extra_filenames=(
                 "config.json",
                 "tokenizer.json",
                 "tokenizer_config.json",
             ),
         ),
-    ]
+    ],
 )
 
 TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
