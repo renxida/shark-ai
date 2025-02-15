@@ -1,5 +1,5 @@
-name: 'Package CI Install'
-description: 'Sets up Python environment and installs dependencies'
+name: 'Package CI Setup'
+description: 'Sets up Python environment, install dependencies, and install pkgci artifacts'
 
 inputs:
   python-version:
