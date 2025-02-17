@@ -112,19 +112,20 @@ jobs:
           name: integration-test-${{ matrix.name }}
           path: integration-test-${{ matrix.name }}.xml
 
-  test_summary:
-    name: "Test Summary"
-    needs: [smoke_test, integration_test]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Download Test Results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: "*-test-*"
-          merge-multiple: true
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          junit_files: "*-test-*.xml"
-          comment_mode: off
+  # TODO: Figure out how to publish one summary over many pytest runs. This current test summary action doesn't work due to perms problems.
+  # test_summary:
+  #   name: "Test Summary"
+  #   needs: [smoke_test, integration_test]
+  #   runs-on: ubuntu-latest
+  #   if: always()
+  #   steps:
+  #     - name: Download Test Results
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: "*-test-*"
+  #         merge-multiple: true
+  #     - name: Publish Test Results
+  #       uses: EnricoMi/publish-unit-test-result-action@v2
+  #       with:
+  #         junit_files: "*-test-*.xml"
+  #         comment_mode: off
