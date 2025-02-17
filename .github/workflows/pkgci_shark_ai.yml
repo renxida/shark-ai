@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: "Set up environment and install PkgCI Artifacts"
-        uses: ./.github/actions/pkgci-install
+        uses: ./.github/actions/pkgci-setup
         with:
           python-version: ${{matrix.python-version}}
           artifact-run-id: ${{ inputs.artifact_run_id }}
