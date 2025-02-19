@@ -87,6 +87,13 @@ class ShortfinLlmLifecycleManager:
 
     @asynccontextmanager
     async def fastapi_lifespan(self, app: FastAPI):
+        """
+        Context manager for FastAPI lifespan events.
+
+        Implements API described in https://fastapi.tiangolo.com/advanced/events/#lifespan
+
+        See `server.py` for a usage example.
+        """
         with self:
             app.state.sysman = self.sysman
             app.state.services = self.services
