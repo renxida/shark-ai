@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 """
-The shortfin GenerateService and SystemManager are configured and added as app.state.services and app.state.sysman respectively.
+Uses shortfin_apps.llm.components.lifecycle to configure a FastAPI application.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

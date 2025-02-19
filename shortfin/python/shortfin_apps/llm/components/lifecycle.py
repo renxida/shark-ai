@@ -101,14 +101,13 @@ class ShortfinLlmLifecycleManager:
         Context manager for FastAPI lifespan events.
 
         Initializes the system manager and services when the app starts, and shuts them down when the app stops.
-        Also provides the services and sysman as app.state, which can be accessed from route handlers via
-        request.app.state.services and request.app.state.sysman.
+        Also provides the services via app.state, which can be accessed from route handlers via
+        request.app.state.services.
 
         Implements API described in https://fastapi.tiangolo.com/advanced/events/#lifespan
 
         See `server.py` for a usage example.
         """
         with self:
-            app.state.sysman = self.sysman
             app.state.services = self.services
             yield
