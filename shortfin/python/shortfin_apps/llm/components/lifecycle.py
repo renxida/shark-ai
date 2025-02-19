@@ -37,6 +37,16 @@ def get_eos_from_tokenizer_config(json_path):
 
 
 class ShortfinLlmLifecycleManager:
+    """
+    Manages the lifecycle of a shortfin llm server, including config loading and parameter setup.
+
+    There are generally two ways to use this.
+
+    To start a full shortfin server, use the context manager or the fastapi_lifespan method.
+
+    To initialize a shortfin server but not start it, use the constructor, then manipulate the services and sysman attributes directly.
+    """
+
     def __init__(self, args):
         # Load server configuration with priority: command line > config file > defaults
         server_params = ServerParams.load(
