@@ -38,7 +38,11 @@ def server_instance(processor, model_config):
 
 
 class BatchConsistencyTestProcess(sf.Process):
-    """Process to test consistency of results across different batch sizes."""
+    """Process to test consistency of results across different batch sizes.
+
+    This is necessary because InferenceExecRequest uses shortfin.VoidFuture
+    which can only be created on a process (which belongs to a fiber that a worker works through).
+    """
 
     def __init__(self, service, input_tokens, batch_sizes, max_response_length):
         super().__init__(fiber=service.main_fiber)
