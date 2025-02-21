@@ -98,7 +98,15 @@ class BatchConsistencyTestProcess(sf.Process):
 
 
 def test_batch_and_nobatch_consistency(server_instance):
-    """Test that requests produce identical results regardless of batch size."""
+    """
+    Test that requests produce identical results regardless of batch size.
+
+    If this test fails, it means that changing the batch size changes the generation results.
+
+    Look for kvcache corruption due to
+    - improper seq_len / current_position handling in service.py
+    - improper masking in sharktank
+    """
     with server_instance.start_service_only() as generate_service:
         # Create and run the test process
         test_process = BatchConsistencyTestProcess(
