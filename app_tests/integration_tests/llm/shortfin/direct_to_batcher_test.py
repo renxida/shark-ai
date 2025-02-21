@@ -12,29 +12,13 @@ from app_tests.integration_tests.llm.device_settings import CPU
 from shortfin_apps.llm.components.messages import InferencePhase, InferenceExecRequest
 
 
-@pytest.fixture
-def processor():
-    return ModelProcessor(base_dir="/tmp/model_management")
-
-
-@pytest.fixture
-def model_config():
-    config = TEST_MODELS["tinystories_llama2_25m"]
-    config.device_settings = CPU
-    return config
-
-
-@pytest.fixture
-def server_instance(processor, model_config):
-    artifacts = processor.process_model(model_config)
-    sconf = ServerConfig(
-        artifacts=artifacts,
-        device_settings=CPU,
-        prefix_sharing_algorithm="none",
-    )
-    sinst = ServerInstance(sconf)
-    sinst.port = 0
-    return sinst
+pytestmark = pytest.mark.parametrize(
+    "model_artifacts,generate_service",
+    [
+        ["tinystories_llama2_25m", {"prefix_sharing": "none"}],
+    ],
+    indirect=True,
+)
 
 
 class BatchConsistencyTestProcess(sf.Process):
@@ -97,7 +81,7 @@ class BatchConsistencyTestProcess(sf.Process):
             ), f"Inconsistent results between batch sizes {self.batch_sizes[0]} and {batch_size}"
 
 
-def test_batch_and_nobatch_consistency(server_instance):
+def test_batch_and_nobatch_consistency(model_artifacts, generate_service):
     """
     Test that requests produce identical results regardless of batch size.
 
@@ -107,12 +91,11 @@ def test_batch_and_nobatch_consistency(server_instance):
     - improper seq_len / current_position handling in service.py
     - improper masking in sharktank
     """
-    with server_instance.start_service_only() as generate_service:
-        # Create and run the test process
-        test_process = BatchConsistencyTestProcess(
-            generate_service,
-            input_tokens=[1, 2, 3, 4],
-            batch_sizes=[1, 2, 3, 4],
-            max_response_length=3,
-        )
-        test_process.launch()
+    # Create and run the test process
+    test_process = BatchConsistencyTestProcess(
+        generate_service,
+        input_tokens=[1, 2, 3, 4],
+        batch_sizes=[1, 2, 3, 4],
+        max_response_length=3,
+    )
+    test_process.launch()
