@@ -51,9 +51,7 @@ class BatchConsistencyTestProcess(sf.Process):
         self.batch_sizes = batch_sizes
         self.max_response_length = max_response_length
         self.results = {}  # Store results for each batch size
-        self.service.batcher.strobe_enabled = (
-            False  # manually strobe the batcher to launch batches
-        )
+        # TODO: modify the batcher to guarantee the batch we send isn't split by strobe messages
 
     async def run(self):
         for batch_size in self.batch_sizes:
