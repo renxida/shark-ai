@@ -101,14 +101,12 @@ class BatchConsistencyTestProcess(sf.Process):
 
 def test_batch_and_nobatch_consistency(server_instance):
     """Test that requests produce identical results regardless of batch size."""
-    # Test parameters
-    input_tokens = [1, 2, 3, 4]  # Initial sequence
-    batch_sizes = [1, 2, 4]  # Different batch sizes to test
-    max_response_length = 3  # Number of decode steps
-
     with server_instance.start_service_only() as generate_service:
         # Create and run the test process
         test_process = BatchConsistencyTestProcess(
-            generate_service, input_tokens, batch_sizes, max_response_length
+            generate_service,
+            input_tokens=[1, 2, 3, 4],
+            batch_sizes=[1, 2, 3, 4],
+            max_response_length=3,
         )
         test_process.launch()
