@@ -72,7 +72,9 @@ class ServerInstance:
             f"--tokenizer_json={self.config.artifacts.tokenizer_path}",
             f"--model_config={self.config.artifacts.config_path}",
             f"--vmfb={self.config.artifacts.vmfb_path}",
-            f"--parameters={self.config.artifacts.weights_path}",
+            f"--parameters",
+            str(self.config.artifacts.weights_path),
+            *(str(path) for path in (self.config.artifacts.shard_paths or [])),
             f"--port={self.port}",
             f"--prefix_sharing_algorithm={self.config.prefix_sharing_algorithm}",
         ]
