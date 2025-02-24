@@ -73,12 +73,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: cpu
-            runs-on: azure-cpubuilder-linux-scale
-            test_device: cpu
-            python-version: 3.11
-          - name: amdgpu_rocm_mi300_gfx942
-            runs-on: linux-mi300-1gpu-ossci
+          - name: amdgpu_mi300_gfx942_tp4
+            runs-on: linux-mi300-8gpu-ossci-nod-ai
             test_device: gfx942_tp4
             python-version: 3.11
     defaults:

@@ -26,7 +26,6 @@ GFX942 = DeviceSettings(
 
 GFX942_TP4 = DeviceSettings(
     compile_flags=(
-        "--iree-hal-target-backends=rocm",
         "--iree-hip-target=gfx942",
         "--iree-hal-target-device=hip[0]",
         "--iree-hal-target-device=hip[1]",

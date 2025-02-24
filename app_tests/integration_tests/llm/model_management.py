@@ -391,15 +391,6 @@ class ModelStageManager:
             str(vmfb_path),
         ]
 
-        # For sharded models, specify target devices for each shard
-        if self.config.tensor_parallelism_size:
-            for i in range(self.config.tensor_parallelism_size):
-                compile_command.extend(
-                    [
-                        f"--iree-hal-target-device=hip[{i}]",
-                    ]
-                )
-
         compile_command.extend(self.config.device_settings.compile_flags)
 
         subprocess.run(compile_command, check=True)
