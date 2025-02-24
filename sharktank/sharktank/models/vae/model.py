@@ -37,8 +37,8 @@ class VaeDecoderModel(ThetaLayer):
         self.mid_block = self._create_mid_block(theta("decoder")("mid_block"))
         # up
         self.up_blocks = nn.ModuleList([])
-        self.upscale_dtype = theta("decoder")("up_blocks")(0)("resnets")(0)("conv1")(
-            "weight"
+        self.upscale_dtype = unbox_tensor(
+            theta("decoder")("up_blocks")(0)("resnets")(0)("conv1")("weight")
         ).dtype
         for i, up_block_name in enumerate(hp.up_block_types):
             up_block_theta = theta("decoder")("up_blocks")(i)
@@ -83,6 +83,7 @@ class VaeDecoderModel(ThetaLayer):
                 ph=2,
                 pw=2,
             )
+
         sample = sample / self.hp.scaling_factor + self.hp.shift_factor
 
         if self.hp.use_post_quant_conv:
