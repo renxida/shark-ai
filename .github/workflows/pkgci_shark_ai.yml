@@ -67,14 +67,14 @@ jobs:
           path: smoke-test-${{ matrix.name }}.xml
 
   sharded_tests:
-    name: "Sharded smoke test tests (${{ matrix.name }})"
+    name: "Sharded smoke tests (${{ matrix.name }})"
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: amdgpu_mi300_gfx942_tp4
-            runs-on: linux-mi300-1gpu-ossci
+            runs-on: linux-mi300-4gpu-ossci
             test_device: gfx942_tp4
             python-version: 3.11
     defaults:
