@@ -32,22 +32,22 @@ GFX942_TP4 = DeviceSettings(
         "--iree-hal-target-device=hip[2]",
         "--iree-hal-target-device=hip[3]",
     ),
-    # server_flags=(
-    #     "--device=hip",
-    #     "--device_ids",
-    #     "0",
-    #     "1",
-    #     "2",
-    #     "3",
-    # ),
     server_flags=(
         "--device=hip",
         "--device_ids",
         "0",
-        "0",
-        "0",
-        "0",
-    ),  # temporarily testing on all 4 device actually being the same device
+        "1",
+        "2",
+        "3",
+    ),
+    # server_flags=(
+    #     "--device=hip",
+    #     "--device_ids",
+    #     "0",
+    #     "0",
+    #     "0",
+    #     "0",
+    # ),  # temporarily testing on all 4 device actually being the same device
 )
 
 GFX90A = DeviceSettings(
