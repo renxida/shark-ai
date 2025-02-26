@@ -74,7 +74,7 @@ jobs:
       matrix:
         include:
           - name: amdgpu_mi300_gfx942_tp4
-            runs-on: linux-mi300-4gpu-ossci
+            runs-on: linux-mi300-4gpu-ossci-nod-ai
             test_device: gfx942_tp4
             python-version: 3.11
     defaults:
