@@ -98,5 +98,9 @@ class TestShardedModelServer:
                 actual=data,
                 message=f"Invalid response format.\nExpected format starting with 'data: '\nActual response: {data}",
             )
+        else:
+            logger.info("Generation succeeded with expected pattern.")
+            logger.info("Prompt: %s", prompt)
+            logger.info("Output: %s", data)
 
         return data[6:].rstrip("\n")
