@@ -153,13 +153,18 @@ class LlmInferenceExecRequest(InferenceExecRequest):
         new_exec_req.output_token_ids = copy.deepcopy(self.output_token_ids)
         new_exec_req.accumulated_normalization = self.accumulated_normalization
         new_exec_req.start_position = self.start_position
-        result_logits: sfnp.device_array = self.result_logits.for_transfer()
-        result_logits.copy_from(self.result_logits)
-        new_exec_req.result_logits = result_logits
+        if self.result_logits is not None:
+            result_logits: sfnp.device_array = self.result_logits.for_transfer()
+            result_logits.copy_from(self.result_logits)
+            new_exec_req.result_logits = result_logits
         new_exec_req.beam_group_id = self.beam_group_id
         new_exec_req.cache = self.cache
-        new_exec_req.allocation = self.allocation.replicate_self()
-        new_exec_req.llm_inference_metrics = self.llm_inference_metrics.replicate_self()
+        if self.allocation is not None:
+            new_exec_req.allocation = self.allocation.replicate_self()
+        if self.llm_inference_metrics is not None:
+            new_exec_req.llm_inference_metrics = (
+                self.llm_inference_metrics.replicate_self()
+            )
         return new_exec_req
 
     def cache_page_indices(self, max_len: int) -> list[int]:
