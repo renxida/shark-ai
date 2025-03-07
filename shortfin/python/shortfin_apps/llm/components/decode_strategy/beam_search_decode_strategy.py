@@ -147,7 +147,8 @@ class BeamGroup:
             new_req.cumulative_log_prob = selection.log_prob
             visited_reqs[new_req.instance_id] = new_req
             new_reqs.add(new_req)
-            if token == eos_token_id:
+            # if token == eos_token_id:
+            if False:
                 new_req.llm_inference_metrics.set_end_time()
                 self.completed_reqs.add(new_req)
 
