@@ -75,18 +75,62 @@ class BeamGroup:
         # Find the topk tokens across all exec_reqs
         sorted_keys = sorted(log_prob_map.keys(), reverse=True)
         exec_req_selections: List[ExecRequestSelection] = []
-        for key in sorted_keys[: self.n_beams - len(self.completed_reqs)]:
-            exec_req, token = log_prob_map[key]
-            exec_req_selections.append(
-                ExecRequestSelection(
-                    # Shift log_probs to the right to avoid large
-                    # negative numbers
-                    log_prob=key - min_log_prob,
-                    exec_req=exec_req,
-                    token=token,
-                    min_log_prob=min_log_prob,
-                )
+
+        desired_selections = self.n_beams - len(self.completed_reqs)
+        available_keys = len(sorted_keys)
+
+        logger.info(
+            f"Selecting top {desired_selections} from {available_keys} candidates (completed_reqs: {len(self.completed_reqs)})"
+        )
+
+        # get to the full number of beams (n_beams) to fill the cache; it's possible to have fewer beams due to key collisions in log_prob_map
+        if available_keys < desired_selections:
+            logger.warning(
+                f"Not enough candidates ({available_keys}) to fill desired beam count ({desired_selections}). Duplicating best candidates."
             )
+
+            for key in sorted_keys:
+                exec_req, token = log_prob_map[key]
+                exec_req_selections.append(
+                    ExecRequestSelection(
+                        log_prob=key - min_log_prob,
+                        exec_req=exec_req,
+                        token=token,
+                        min_log_prob=min_log_prob,
+                    )
+                )
+
+            # Duplicate best to fill
+            remaining = desired_selections - available_keys
+            for i in range(remaining):
+                key = sorted_keys[i % available_keys]
+                exec_req, token = log_prob_map[key]
+
+                # Create a small offset to make log_prob slightly different to ensures they're treated as distinct paths in the beam search
+                log_prob_offset = (i + 1) * 0.00001  # Very small offset
+
+                exec_req_selections.append(
+                    ExecRequestSelection(
+                        log_prob=key - min_log_prob - log_prob_offset,
+                        exec_req=exec_req,
+                        token=token,
+                        min_log_prob=min_log_prob,
+                    )
+                )
+        else:
+            # We have enough candidates, just take the top desired_selections
+            for key in sorted_keys[:desired_selections]:
+                exec_req, token = log_prob_map[key]
+                exec_req_selections.append(
+                    ExecRequestSelection(
+                        # Shift log_probs to the right to avoid large
+                        # negative numbers
+                        log_prob=key - min_log_prob,
+                        exec_req=exec_req,
+                        token=token,
+                        min_log_prob=min_log_prob,
+                    )
+                )
 
         return exec_req_selections
 
@@ -94,6 +138,12 @@ class BeamGroup:
         # TODO: Use temperature when processing logits for better diversity of
         # outputs.
         exec_reqs = self.exec_reqs
+
+        # Log how many active and completed beams we have
+        active_reqs = [req for req in exec_reqs if req not in self.completed_reqs]
+        logger.info(
+            f"Evaluating topk with {len(active_reqs)} active beams out of {len(exec_reqs)} total (completed: {len(self.completed_reqs)})"
+        )
 
         log_prob_map: Dict[float, tuple[LlmInferenceExecRequest, int]] = {}
         global_min_log_prob = 0.0
@@ -129,6 +179,13 @@ class BeamGroup:
         visited_reqs: Dict[str, LlmInferenceExecRequest] = {}
         new_reqs = set()
 
+        # Keep track of how many beam selections we're processing
+        logger.info(
+            f"BeamGroup processing {len(exec_reqs_selections)} beam selections out of {self.n_beams} total beams"
+        )
+        logger.info(f"Current active exec_reqs count: {len(self.exec_reqs)}")
+        logger.info(f"Current completed_reqs count: {len(self.completed_reqs)}")
+
         for selection in exec_reqs_selections:
             new_req = selection.exec_req
             token = selection.token
@@ -154,12 +211,17 @@ class BeamGroup:
 
         for req in self.exec_reqs:
             if req not in new_reqs:
+                logger.info(
+                    f"Freeing cache pages for req that didn't make it to new_reqs: {req.instance_id}"
+                )
                 req.free_cache_pages()
 
         for req in self.completed_reqs:
+            logger.info(f"Freeing cache pages for completed req: {req.instance_id}")
             req.free_cache_pages()
 
         self.exec_reqs = list(new_reqs)
+        logger.info(f"After processing, new exec_reqs count: {len(self.exec_reqs)}")
 
     def _final_score(self, exec_req: LlmInferenceExecRequest):
         return (

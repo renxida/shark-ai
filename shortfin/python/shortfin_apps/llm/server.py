@@ -5,9 +5,11 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 import argparse
+import asyncio
 import logging
 from pathlib import Path
 import sys
+import threading
 
 import uvicorn.logging
 
@@ -173,10 +175,35 @@ def main(argv, log_config=uvicorn.config.LOGGING_CONFIG):
 
 if __name__ == "__main__":
     from shortfin.support.logging_setup import configure_main_logger
+    import yappi
 
     logger = configure_main_logger("server")
-    main(
-        sys.argv[1:],
-        # Make logging defer to the default shortfin logging config.
-        log_config=UVICORN_LOG_CONFIG,
+
+    # Configure yappi for multi-threaded and async code profiling
+    yappi.set_clock_type(
+        "cpu"
+    )  # Use CPU time (alternatives: "wall" for wall-clock time)
+    yappi.set_context_id_callback(
+        lambda: id(asyncio.current_task() or threading.current_thread())
     )
+
+    # Start profiling
+    yappi.start(builtins=True)
+
+    try:
+        # Run your function
+        main(
+            sys.argv[1:],
+            # Make logging defer to the default shortfin logging config.
+            log_config=UVICORN_LOG_CONFIG,
+        )
+    finally:
+        # Stop profiling and save to file
+        yappi.stop()
+
+        # Write profiling results to file
+        stats = yappi.get_func_stats()
+        stats.save("shortfin_llm_server.prof", type="pstat")  # Same format as cProfile
+
+        # Optionally save in yappi format for more detailed analysis
+        stats.save("shortfin_llm_server.yappi", type="callgrind")
