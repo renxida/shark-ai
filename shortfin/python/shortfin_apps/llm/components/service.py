@@ -7,12 +7,19 @@
 import logging
 import os
 from time import time
+import asyncio
 
 
 import shortfin as sf
 import shortfin.array as sfnp
 
-from ...utils import ServiceBase, BatcherProcessBase, prog_isolations
+from ...utils import (
+    ServiceBase,
+    BatcherProcessBase,
+    prog_isolations,
+    StrobeMessage,
+    InferenceExecRequest,
+)
 
 from .kvcache.base_attention_cache import (
     BasePagedAttentionCache,
@@ -58,7 +65,12 @@ class GenerateService(ServiceBase):
         self.main_fiber = sysman.ls.create_fiber(self.main_worker)
 
         # Scope dependent objects.
-        self.batcher = LlmBatcherProcess(self)
+        batcher_type = os.getenv("SHORTFIN_LLM_BATCHER_TYPE", "strobe").lower()
+        if batcher_type == "instant":
+            self.batcher = LlmInstantBatcherProcess(self)
+        else:
+            self.batcher = LlmBatcherProcess(self)
+
         page_pool_config = PagePoolConfig(
             dtype=model_params.attn_dtype,
             alloc_page_count=model_params.paged_kv_cache.device_block_count,
@@ -260,6 +272,279 @@ class LlmBatcherProcess(BatcherProcessBase):
                 self.pending_decodes.remove(flighted_request)
             # And takeoff.
             exec_process.launch()
+
+
+class LlmInstantBatcherProcess(sf.Process):
+    """
+    Batcher implementation that processes batches immediately
+    when they reach the configured batch sizes, without waiting for strobes.
+
+    This implementation does not inherit from BatcherProcessBase but provides
+    the same interfaces as LlmBatcherProcess.
+    """
+
+    def __init__(self, service: GenerateService):
+        super().__init__(fiber=service.main_fiber)
+        self.service = service
+        self.batcher_infeed = self.system.create_queue()
+        self.pending_prefills: set[LlmInferenceExecRequest] = set()
+        self.pending_decodes: set[LlmInferenceExecRequest] = set()
+
+        # Use max batch sizes from service model parameters
+        self.prefill_batch_size: int = max(service.model_params.prefill_batch_sizes)
+        self.decode_batch_size: int = max(service.model_params.decode_batch_sizes)
+        self.page_seq_stride = service.model_params.paged_kv_cache.block_seq_stride
+
+        # Timers for handling partial batches
+        self.last_prefill_time = time()
+        self.last_decode_time = time()
+        self.prefill_timeout = 1.0  # 1 second timeout
+        self.decode_timeout = 1.0  # 1 second timeout
+
+    def shutdown(self):
+        """Shutdown the batcher process."""
+        self.batcher_infeed.close()
+
+    def submit(self, request):
+        """Submit a request to the batcher."""
+        self.batcher_infeed.write_nodelay(request)
+
+    def launch(self):
+        """Launch the batcher process."""
+        super().launch()
+
+    async def run(self):
+        """Main run loop for the batcher process."""
+        reader = self.batcher_infeed.reader()
+
+        # Create a task for checking timeouts
+        timeout_check_task = asyncio.create_task(self._check_timeouts())
+
+        try:
+            while item := await reader():
+                if isinstance(item, InferenceExecRequest) or isinstance(
+                    item, LlmInferenceExecRequest
+                ):
+                    self.handle_inference_request(item)
+                    # Immediately process batches after each request
+                    await self.process_batches()
+                elif isinstance(item, StrobeMessage):
+                    # Ignore strobe messages, as we don't use them in instant batcher
+                    pass
+                else:
+                    logger.error("Illegal message received by batcher: %r", item)
+        finally:
+            # Cancel the timeout checking task when the main loop exits
+            timeout_check_task.cancel()
+
+    async def _check_timeouts(self):
+        """Periodically check for timed-out requests that need processing."""
+        try:
+            while True:
+                # Check every 100ms for timed-out requests
+                await asyncio.sleep(0.1)
+                await self.process_batches()
+        except asyncio.CancelledError:
+            # Task was cancelled, exit gracefully
+            pass
+
+    def handle_inference_request(self, request: LlmInferenceExecRequest):
+        """Handle an inference request."""
+        phase = request.phase
+        if phase == InferencePhase.PREFILL:
+            if request.llm_inference_metrics is not None:
+                request.llm_inference_metrics.batcher_pending_times.append(time())
+            self.pending_prefills.add(request)
+            self.last_prefill_time = time()  # for partial batches after timeout
+            # Log how many prefill requests we currently have
+            logger.info(
+                f"Received new prefill request. Total pending prefills: {len(self.pending_prefills)}/{self.prefill_batch_size}"
+            )
+        elif phase == InferencePhase.DECODE:
+            if request.llm_inference_metrics is not None:
+                request.llm_inference_metrics.batcher_pending_times.append(time())
+            self.pending_decodes.add(request)
+            self.last_decode_time = time()  # Update last decode request time
+            # Log how many decode requests we currently have
+            logger.info(
+                f"Received new decode request. Total pending decodes: {len(self.pending_decodes)}/{self.decode_batch_size}"
+            )
+        else:
+            logger.error("Illegal LlmInferenceExecRequest phase: %r", phase)
+
+    async def process_batches(self):
+        """Process batches of requests immediately if they meet batch size criteria or timeout is reached."""
+        current_time = time()
+
+        if len(self.pending_prefills) >= self.prefill_batch_size:
+            # this is the normal path
+            logger.info(
+                f"Processing full batch of {len(self.pending_prefills)} prefill requests"
+            )
+            await self.board_prefills()
+        elif (
+            len(self.pending_prefills) > 0
+            and (current_time - self.last_prefill_time) >= self.prefill_timeout
+        ):
+            # if we don't get enough requests to batch, we go this path and emit a warning
+            time_waiting = current_time - self.last_prefill_time
+            logger.warning(
+                f"TIMEOUT: Processing {len(self.pending_prefills)} prefill requests after {time_waiting:.2f}s (target batch size: {self.prefill_batch_size})"
+            )
+            prefill_count_before = len(self.pending_prefills)
+            await self.board_prefills()
+            prefill_count_after = len(self.pending_prefills)
+            logger.info(
+                f"Processed {prefill_count_before - prefill_count_after} prefill requests on timeout, {prefill_count_after} still pending"
+            )
+
+        if len(self.pending_decodes) >= self.decode_batch_size:
+            logger.info(
+                f"Processing full batch of {len(self.pending_decodes)} decode requests"
+            )
+            await self.board_decodes()
+        elif (
+            len(self.pending_decodes) > 0
+            and (current_time - self.last_decode_time) >= self.decode_timeout
+        ):
+            time_waiting = current_time - self.last_decode_time
+            logger.warning(
+                f"TIMEOUT: Processing {len(self.pending_decodes)} decode requests after {time_waiting:.2f}s (target batch size: {self.decode_batch_size})"
+            )
+            decode_count_before = len(self.pending_decodes)
+            await self.board_decodes()
+            decode_count_after = len(self.pending_decodes)
+            logger.info(
+                f"Processed {decode_count_before - decode_count_after} decode requests on timeout, {decode_count_after} still pending"
+            )
+
+    async def board_prefills(self):
+        """Process prefill requests immediately when batch size is reached."""
+        cache = self.service.page_cache
+
+        # Fill prefill flights
+        pending_prefills = self.pending_prefills
+        if len(pending_prefills) == 0:
+            logger.debug("No pending prefill requests to process")
+            return
+
+        exec_process = InferenceExecutorProcess(
+            self.service,
+            InferencePhase.PREFILL,
+            self.page_seq_stride,
+            cache.page_pool.page_tables,
+        )
+
+        attempted = 0
+        success = 0
+        failures = 0
+
+        for prefill_request in list(pending_prefills):
+            attempted += 1
+            assert prefill_request.phase == InferencePhase.PREFILL
+            if len(exec_process.exec_requests) >= self.prefill_batch_size:
+                logger.debug(
+                    f"Reached max prefill batch size ({self.prefill_batch_size}), stopping"
+                )
+                break
+
+            needed_pages = math.ceil(
+                len(prefill_request.input_token_ids) / self.page_seq_stride
+            )
+
+            # allocate kv cache pages
+            try:
+                allocation = cache.acquire_pages_for_tokens(
+                    prefill_request.input_token_ids,
+                    extra_token_slots=0,  # prefill needs no extra kvcache slots to write to
+                )
+                success += 1
+            except CacheAllocationFailure:
+                failures += 1
+                logger.debug(
+                    f"Cannot fulfill request for {needed_pages} pages. Allocation failure."
+                )
+                continue
+
+            logger.debug(f"Successfully acquired allocation: {allocation}")
+            prefill_request.free_cache_pages()
+            prefill_request.allocation = allocation
+
+            # Can flight this request
+            exec_process.exec_requests.append(prefill_request)
+
+        # If we have requests to launch, remove them from pending and launch
+        if exec_process.exec_requests:
+            for flighted_request in exec_process.exec_requests:
+                self.pending_prefills.remove(flighted_request)
+            # And takeoff
+            batch_size = len(exec_process.exec_requests)
+            exec_process.launch()
+            logger.info(
+                f"Launched prefill batch with {batch_size} requests (Attempted: {attempted}, Success: {success}, Failed: {failures}, Remaining: {len(self.pending_prefills)})"
+            )
+        else:
+            logger.warning(
+                f"Failed to process any prefill requests. Attempted: {attempted}, Failed: {failures}, Remaining: {len(self.pending_prefills)}"
+            )
+
+    async def board_decodes(self):
+        """Process decode requests immediately when batch size is reached."""
+        cache = self.service.page_cache
+
+        # Fill decode flights
+        pending_decodes = self.pending_decodes
+        if len(pending_decodes) == 0:
+            logger.debug("No pending decode requests to process")
+            return
+
+        exec_process = InferenceExecutorProcess(
+            self.service,
+            InferencePhase.DECODE,
+            self.page_seq_stride,
+            cache.page_pool.page_tables,
+        )
+
+        attempted = 0
+        success = 0
+        failures = 0
+
+        for decode_request in list(pending_decodes):
+            attempted += 1
+            assert decode_request.phase == InferencePhase.DECODE
+            if len(exec_process.exec_requests) >= self.decode_batch_size:
+                logger.debug(
+                    f"Reached max decode batch size ({self.decode_batch_size}), stopping"
+                )
+                break
+
+            try:
+                decode_request.allocation.extend_allocation(
+                    decode_request.input_token_ids, extra_token_slots=1
+                )
+                success += 1
+            except Exception as e:
+                failures += 1
+                logger.error(f"Failed to extend allocation for decode request: {e}")
+                continue
+
+            # Can flight this request
+            exec_process.exec_requests.append(decode_request)
+
+        # If we have requests to launch, remove them from pending and launch
+        if exec_process.exec_requests:
+            for flighted_request in exec_process.exec_requests:
+                self.pending_decodes.remove(flighted_request)
+            # And takeoff
+            batch_size = len(exec_process.exec_requests)
+            exec_process.launch()
+            logger.info(
+                f"Launched decode batch with {batch_size} requests (Attempted: {attempted}, Success: {success}, Failed: {failures}, Remaining: {len(self.pending_decodes)})"
+            )
+        else:
+            logger.warning(
+                f"Failed to process any decode requests. Attempted: {attempted}, Failed: {failures}, Remaining: {len(self.pending_decodes)}"
+            )
 
 
 ########################################################################################
