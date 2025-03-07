@@ -89,7 +89,7 @@ class BasePagedAttentionCacheAllocation(PageAllocation):
         new_pages = self.pages
         last_page = new_pages.pop(-1)
         for page in new_pages:
-            PagePool.ref_counts[page.index].increment()
+            self._cache.page_pool.ref_counts[page.index] += 1
         last_page_copy = self._cache.page_pool.copy_page(last_page)
         if last_page_copy is None:
             raise CacheAllocationFailure()

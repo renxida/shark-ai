@@ -20,6 +20,10 @@ from ...utils import InferenceExecRequest
 from uuid import uuid4
 
 
+def listcopy(l):
+    return [x for x in l]
+
+
 class InferencePhase(Enum):
     PREFILL = 1
     DECODE = 2
@@ -70,9 +74,9 @@ class LlmInferenceMetrics:
 
     def replicate_self(self) -> "LlmInferenceMetrics":
         return LlmInferenceMetrics(
-            prefill_times=copy.deepcopy(self.prefill_times),
-            decode_times=copy.deepcopy(self.decode_times),
-            batcher_pending_times=copy.deepcopy(self.batcher_pending_times),
+            prefill_times=listcopy(self.prefill_times),
+            decode_times=listcopy(self.decode_times),
+            batcher_pending_times=listcopy(self.batcher_pending_times),
             ttft=self.ttft,
             start_time=self.start_time,
             end_time=self.end_time,
@@ -147,10 +151,10 @@ class LlmInferenceExecRequest(InferenceExecRequest):
     def replicate_self(self) -> "LlmInferenceExecRequest":
         new_exec_req = LlmInferenceExecRequest(
             self.phase,
-            copy.deepcopy(self.input_token_ids),
+            listcopy(self.input_token_ids),
             self.rid,
         )
-        new_exec_req.output_token_ids = copy.deepcopy(self.output_token_ids)
+        new_exec_req.output_token_ids = listcopy(self.output_token_ids)
         new_exec_req.accumulated_normalization = self.accumulated_normalization
         new_exec_req.start_position = self.start_position
         if self.result_logits is not None:

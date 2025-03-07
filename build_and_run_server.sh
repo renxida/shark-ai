@@ -27,7 +27,8 @@ export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2048
 
 source $HOME/iree-build/.env && export PYTHONPATH
 
-cd shortfin && python ./dev_me.py --iree $HOME/iree --build-type=RelWithDebInfo --no-tracing
+pushd shortfin && python ./dev_me.py --iree $HOME/iree --build-type=RelWithDebInfo --no-tracing
+popd
 
 # prep artifacts
 

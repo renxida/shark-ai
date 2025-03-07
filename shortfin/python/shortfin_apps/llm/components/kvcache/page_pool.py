@@ -14,24 +14,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class RefCount:
-    """
-    A reference counter to replace simple int.
-    """
-
-    count: int = 0
-
-    def increment(self) -> int:
-        self.count += 1
-        return self.count
-
-    def decrement(self) -> int:
-        self.count -= 1
-        return self.count
-
-    def is_empty(self) -> bool:
-        return self.count <= 0
+# RefCount class removed in favor of using a simple list of integers
 
 
 @dataclass
@@ -85,8 +68,6 @@ class PagePool:
     `radix_tree.py`.
     """
 
-    ref_counts: dict[int, RefCount] = {}
-
     def __init__(self, *, devices: Sequence[sf.ScopedDevice], config: PagePoolConfig):
         self._lock = threading.Lock()
         self.devices = list(devices)
@@ -99,6 +80,9 @@ class PagePool:
         ]
 
         self.available_pages = list(self.attn_page_entries)
+
+        # Initialize reference counts as a list of integers
+        self.ref_counts = [0 for _ in range(self.config.alloc_page_count)]
 
         # Initialize a page table on each device.
         page_table_shape = [
@@ -130,9 +114,7 @@ class PagePool:
             pages = []
             for _ in range(count):
                 available_page = self.available_pages.pop()
-                if PagePool.ref_counts.get(available_page.index) is None:
-                    PagePool.ref_counts[available_page.index] = RefCount()
-                PagePool.ref_counts[available_page.index].increment()
+                self.ref_counts[available_page.index] += 1
                 pages.append(available_page)
             return pages
 
@@ -140,8 +122,8 @@ class PagePool:
         with self._lock:
             available_pages = []
             for page in pages:
-                PagePool.ref_counts[page.index].decrement()
-                if PagePool.ref_counts[page.index].is_empty():
+                self.ref_counts[page.index] -= 1
+                if self.ref_counts[page.index] <= 0:
                     available_pages.append(page)
             self.available_pages.extend(available_pages)
             logger.info(f"After freeing Cache Pages: {str(self)}")

@@ -52,6 +52,7 @@ class BeamGroup:
         return logits
 
     def log_softmax(self, logits: np.array) -> np.array:
+        return logits
         # TODO: Move this to sfnp.array
         c = logits.max()
         logsumexp = np.log(np.exp(logits - c).sum())
@@ -61,8 +62,9 @@ class BeamGroup:
         self, logits: np.array, k: int, axis: int
     ) -> Tuple[List[float], List[int]]:
         # TODO: Move this to sfnp.array
-        indices = np.argpartition(logits, -k, axis=axis)
-        topk_indices = indices[axis][-k:]
+        # indices = np.argpartition(logits, -k, axis=axis)
+        # topk_indices = indices[axis][-k:]
+        topk_indices = np.arange(k)
         topk_values = logits[axis][topk_indices]
 
         return topk_values, topk_indices
@@ -154,7 +156,8 @@ class BeamGroup:
             # NOTE: This copy is slow, and part of why this needs to be moved to
             # `shortfin.array`
             logits = np.array(exec_req.result_logits)
-            logits = self._apply_temperature(logits)
+            # logits = self._apply_temperature(logits)
+
             # Take log_softmax. This is to avoid a req's cumulative probability
             # becoming too small, which can lead precision issues.
             # This allows us to obtain cumulative probability by summing
