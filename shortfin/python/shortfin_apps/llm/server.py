@@ -183,9 +183,23 @@ if __name__ == "__main__":
     yappi.set_clock_type(
         "cpu"
     )  # Use CPU time (alternatives: "wall" for wall-clock time)
-    yappi.set_context_id_callback(
-        lambda: id(asyncio.current_task() or threading.current_thread())
-    )
+
+    # Safer context ID callback that checks if event loop exists first
+    def context_id_callback():
+        try:
+            # Check if there's a running event loop before getting current task
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                task = asyncio.current_task(loop)
+                if task:
+                    return id(task)
+        except RuntimeError:
+            # No event loop, that's ok
+            pass
+        # Default to thread ID
+        return id(threading.current_thread())
+
+    yappi.set_context_id_callback(context_id_callback)
 
     # Start profiling
     yappi.start(builtins=True)
@@ -207,3 +221,8 @@ if __name__ == "__main__":
 
         # Optionally save in yappi format for more detailed analysis
         stats.save("shortfin_llm_server.yappi", type="callgrind")
+
+        # Log where the profiles were saved
+        logger.info("Profiling data saved to:")
+        logger.info("  - shortfin_llm_server.prof (pstat format)")
+        logger.info("  - shortfin_llm_server.yappi (callgrind format)")
