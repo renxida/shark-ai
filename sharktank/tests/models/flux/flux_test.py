@@ -49,7 +49,9 @@ iree_compile_flags = [
     "--iree-opt-const-eval=false",
     "--iree-opt-strip-assertions=true",
     "--iree-global-opt-propagate-transposes=true",
-    "--iree-dispatch-creation-enable-fuse-horizontal-contractions=true",
+    # TODO: We want the following flag to be enable eventually, but there's
+    # a bug in iree that's causing a failure right now.
+    "--iree-dispatch-creation-enable-fuse-horizontal-contractions=false",
     "--iree-dispatch-creation-enable-aggressive-fusion=true",
     "--iree-opt-aggressively-propagate-transposes=true",
     "--iree-opt-outer-dim-concat=true",
@@ -57,10 +59,10 @@ iree_compile_flags = [
     "--iree-llvmgpu-enable-prefetch=true",
     "--iree-opt-data-tiling=false",
     "--iree-codegen-gpu-native-math-precision=true",
-    "--iree-codegen-llvmgpu-use-vector-distribution",
+    "--iree-codegen-llvmgpu-use-vector-distribution=1",
     "--iree-hip-waves-per-eu=2",
     "--iree-execution-model=async-external",
-    "--iree-preprocessing-pass-pipeline=builtin.module(iree-preprocessing-transpose-convolution-pipeline,iree-preprocessing-pad-to-intrinsics)",
+    "--iree-preprocessing-pass-pipeline=builtin.module(iree-preprocessing-transpose-convolution-pipeline,iree-preprocessing-pad-to-intrinsics,util.func(iree-preprocessing-generalize-linalg-matmul-experimental))",
 ]
 
 
@@ -242,6 +244,9 @@ class FluxTest(TempDirTestBase):
             reference_dtype=torch.float32, target_dtype=torch.float32, atol=1e-2
         )
 
+    @pytest.mark.skip(
+        reason="Segmentation fault during output comparison. See https://github.com/nod-ai/shark-ai/issues/1050"
+    )
     @with_flux_data
     def testCompareDevIreeBf16AgainstHuggingFaceF32(self):
         self.runTestCompareDevIreeAgainstHuggingFace(

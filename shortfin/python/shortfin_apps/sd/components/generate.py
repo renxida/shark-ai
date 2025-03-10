@@ -8,6 +8,10 @@ import asyncio
 import logging
 import json
 
+from typing import (
+    Union,
+)
+
 import shortfin as sf
 
 # TODO: Have a generic "Responder" interface vs just the concrete impl.
@@ -15,7 +19,7 @@ from shortfin.interop.fastapi import FastAPIResponder
 
 from .io_struct import GenerateReqInput
 from .messages import SDXLInferenceExecRequest
-from .service import GenerateService
+from .service import SDXLGenerateService
 from .metrics import measure
 
 logger = logging.getLogger("shortfin-sd.generate")
@@ -41,7 +45,7 @@ class GenerateImageProcess(sf.Process):
         self.client = client
         self.gen_req = gen_req
         self.index = index
-        self.result_image = None
+        self.result_image: Union[str, None] = None
 
     async def run(self):
         exec = SDXLInferenceExecRequest.from_batch(self.gen_req, self.index)
@@ -71,7 +75,7 @@ class ClientGenerateBatchProcess(sf.Process):
 
     def __init__(
         self,
-        service: GenerateService,
+        service: SDXLGenerateService,
         gen_req: GenerateReqInput,
         responder: FastAPIResponder,
     ):
@@ -85,7 +89,7 @@ class ClientGenerateBatchProcess(sf.Process):
         logger.debug("Started ClientBatchGenerateProcess: %r", self)
         try:
             # Launch all individual generate processes and wait for them to finish.
-            gen_processes = []
+            gen_processes: list[GenerateImageProcess] = []
             for index in range(self.gen_req.num_output_images):
                 gen_process = GenerateImageProcess(self, self.gen_req, index)
                 gen_processes.append(gen_process)
