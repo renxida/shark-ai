@@ -592,9 +592,12 @@ class PagedKVCache:
                         )
                         # Check if block_index is valid before indexing
                         if block_index < len(subblock_table):
-                            block_data = ops.to(
-                                curr_block.flatten(), dtype=subblock_table.dtype
-                            )
+                            # Get the expected shape from the subblock_table entry
+                            expected_shape = subblock_table[block_index].shape
+
+                            # Make sure the flattened block has the right shape
+                            block_data = curr_block.reshape(expected_shape)
+                            block_data = ops.to(block_data, dtype=subblock_table.dtype)
 
                             if subblock_table.dtype == torch.float8_e4m3fnuz:
                                 subblock_table_as_int8 = subblock_table.view(
