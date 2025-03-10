@@ -504,15 +504,32 @@ TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
     device_settings=None,
 )
 
-# Sharded version of tinystories for smoke testing
-TEST_MODELS["tinystories_tp4"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
-    dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-    model_file="model.irpa",  # This will be the final converted file name
-    tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-    batch_sizes=(4,),  # Fixed batch size of 4 for testing
-    device_settings=None,
-    tensor_parallelism_size=4,  # 4-way sharding for smoke testing
+# Base function to create TinyStories models with configurable tensor parallelism
+def create_tinystories_model(tp_size=None, batch_sizes=(1, 4)):
+    """Create a TinyStories model config with configurable tensor parallelism."""
+    return ModelConfig(
+        source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
+        dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        model_file="model.irpa",  # This will be the final converted file name
+        tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        batch_sizes=batch_sizes,
+        device_settings=None,
+        tensor_parallelism_size=tp_size,
+    )
+
+
+# Predefined sharded versions of tinystories for common TP sizes
+# These are convenience configurations that can be referenced directly in tests
+TEST_MODELS["tinystories_tp2"] = create_tinystories_model(
+    tp_size=2, batch_sizes=(4,)  # Fixed batch size of 4 for testing
+)
+
+TEST_MODELS["tinystories_tp4"] = create_tinystories_model(
+    tp_size=4, batch_sizes=(4,)  # Fixed batch size of 4 for testing
+)
+
+TEST_MODELS["tinystories_tp8"] = create_tinystories_model(
+    tp_size=8, batch_sizes=(8,)  # Fixed batch size of 8 for testing
 )
 
 # Example of a sharded model configuration
