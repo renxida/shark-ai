@@ -6,12 +6,15 @@
 
 from enum import Enum
 
+from typing import Union
+
 import logging
 
 import shortfin as sf
 import shortfin.array as sfnp
 
 from .io_struct import GenerateReqInput
+from ...utils import InferenceExecRequest
 
 logger = logging.getLogger("shortfin-sd.messages")
 
@@ -29,7 +32,7 @@ class InferencePhase(Enum):
     POSTPROCESS = 5
 
 
-class InferenceExecRequest(sf.Message):
+class FluxInferenceExecRequest(InferenceExecRequest):
     """
     Generalized request passed for an individual phase of image generation.
 
@@ -99,8 +102,7 @@ class InferenceExecRequest(sf.Message):
         # Postprocess.
         self.image_array = image_array
 
-        self.result_image = None
-        self.img_metadata = None
+        self.result_image: Union[str | None] = None
 
         self.done = sf.VoidFuture()
 
@@ -112,7 +114,7 @@ class InferenceExecRequest(sf.Message):
         self.post_init()
 
     @staticmethod
-    def from_batch(gen_req: GenerateReqInput, index: int) -> "InferenceExecRequest":
+    def from_batch(gen_req: GenerateReqInput, index: int) -> "FluxInferenceExecRequest":
         gen_inputs = [
             "prompt",
             "neg_prompt",
@@ -138,7 +140,7 @@ class InferenceExecRequest(sf.Message):
             else:
                 rec_input = received
             rec_inputs[item] = rec_input
-        return InferenceExecRequest(**rec_inputs)
+        return FluxInferenceExecRequest(**rec_inputs)
 
     def post_init(self):
         """Determines necessary inference phases and tags them with static program parameters."""
@@ -184,9 +186,3 @@ class InferenceExecRequest(sf.Message):
         self.phases = None
         self.done = sf.VoidFuture()
         self.return_host_array = True
-
-
-class StrobeMessage(sf.Message):
-    """Sent to strobe a queue with fake activity (generate a wakeup)."""
-
-    ...

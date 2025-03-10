@@ -17,27 +17,19 @@ import base64
 import shortfin as sf
 import shortfin.array as sfnp
 
+from ...utils import GenerateService, BatcherProcess
+
 from .config_struct import ModelParams
 from .manager import SystemManager
-from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
+from .messages import InferenceExecRequest, InferencePhase
 from .tokenizer import Tokenizer
 from .metrics import measure, log_duration_str
 
 logger = logging.getLogger("shortfin-sd.service")
 
-prog_isolations = {
-    "none": sf.ProgramIsolation.NONE,
-    "per_fiber": sf.ProgramIsolation.PER_FIBER,
-    "per_call": sf.ProgramIsolation.PER_CALL,
-}
 
-
-class GenerateService:
+class SDXLGenerateService(GenerateService):
     """Top level service interface for image generation."""
-
-    inference_programs: dict[str, sf.Program]
-
-    inference_functions: dict[str, dict[str, sf.ProgramFunction]]
 
     def __init__(
         self,
@@ -52,55 +44,47 @@ class GenerateService:
         show_progress: bool = False,
         trace_execution: bool = False,
     ):
+        super().__init__(sysman, fibers_per_device, workers_per_device)
         self.name = name
-
-        # Application objects.
-        self.sysman = sysman
         self.tokenizers = tokenizers
         self.model_params = model_params
-        self.inference_parameters: dict[str, list[sf.BaseProgramParameters]] = {}
-        self.inference_modules: dict[str, sf.ProgramModule] = {}
-        self.inference_functions: dict[str, dict[str, sf.ProgramFunction]] = {}
-        self.inference_programs: dict[int, dict[str, sf.Program]] = {}
         self.trace_execution = trace_execution
         self.show_progress = show_progress
 
-        self.prog_isolation = prog_isolations[prog_isolation]
+        # Finish initialization
+        self.set_isolation(prog_isolation)
+        self.initialize_workers_and_fibers()
+        self.batcher = SDXLBatcherProcess(self)
 
-        self.workers_per_device = workers_per_device
-        self.fibers_per_device = fibers_per_device
-        if fibers_per_device % workers_per_device != 0:
-            raise ValueError(
-                "Currently, fibers_per_device must be divisible by workers_per_device"
-            )
-        self.fibers_per_worker = int(fibers_per_device / workers_per_device)
-
+    def initialize_workers_and_fibers(self):
+        """Initialize workers and fibers for the service."""
         self.workers = []
         self.meta_fibers = []
         self.idle_meta_fibers = []
+
         # For each worker index we create one on each device, and add their fibers to the idle set.
         # This roughly ensures that the first picked fibers are distributed across available devices.
         for idx, device in enumerate(self.sysman.ls.devices):
             for i in range(self.workers_per_device):
-                worker = sysman.ls.create_worker(f"{name}-inference-{device.name}-{i}")
+                worker = self.create_worker(device, i)
                 self.workers.append(worker)
             for i in range(self.fibers_per_device):
-                worker_idx = idx * workers_per_device + i % workers_per_device
+                worker_idx = idx * self.workers_per_device + i % self.workers_per_device
                 tgt_worker = self.workers[worker_idx]
-                raw_fiber = sysman.ls.create_fiber(tgt_worker, devices=[device])
+                raw_fiber = self.sysman.ls.create_fiber(tgt_worker, devices=[device])
                 meta_fiber = self.equip_fiber(
                     raw_fiber, len(self.meta_fibers), worker_idx
                 )
                 self.meta_fibers.append(meta_fiber)
                 self.idle_meta_fibers.append(meta_fiber)
+
+        # Initialize program and function containers
         for idx in range(len(self.workers)):
             self.inference_programs[idx] = {}
             self.inference_functions[idx] = {}
 
-        # Scope dependent objects.
-        self.batcher = BatcherProcess(self)
-
-    def equip_fiber(self, fiber, idx, worker_idx):
+    def equip_fiber(self, fiber, idx: int, worker_idx: int):
+        """Equip a fiber with additional metadata and command buffers."""
         MetaFiber = namedtuple(
             "MetaFiber", ["fiber", "idx", "worker_idx", "device", "command_buffers"]
         )
@@ -114,38 +98,10 @@ class GenerateService:
 
         return MetaFiber(fiber, idx, worker_idx, fiber.device(0), cbs)
 
-    def load_inference_module(self, vmfb_path: Path, component: str = None):
-        if not self.inference_modules.get(component):
-            self.inference_modules[component] = []
-        self.inference_modules[component].append(
-            sf.ProgramModule.load(self.sysman.ls, vmfb_path)
-        )
-
-    def load_inference_parameters(
-        self,
-        *paths: Path,
-        parameter_scope: str,
-        format: str = "",
-        component: str = None,
-    ):
-        p = sf.StaticProgramParameters(self.sysman.ls, parameter_scope=parameter_scope)
-        for path in paths:
-            logger.info("Loading parameter fiber '%s' from: %s", parameter_scope, path)
-            p.load(path, format=format)
-        if not self.inference_parameters.get(component):
-            self.inference_parameters[component] = []
-        self.inference_parameters[component].append(p)
-
     def start(self):
-        # Initialize programs.
         for component in self.inference_modules:
             logger.info(f"Loading component: {component}")
-            component_modules = [
-                sf.ProgramModule.parameter_provider(
-                    self.sysman.ls, *self.inference_parameters.get(component, [])
-                ),
-                *self.inference_modules[component],
-            ]
+            component_modules = self.initialize_program_modules(component)
 
             for worker_idx, worker in enumerate(self.workers):
                 worker_devices = self.meta_fibers[
@@ -154,13 +110,13 @@ class GenerateService:
                 logger.info(
                     f"Loading inference program: {component}, worker index: {worker_idx}, device: {worker_devices}"
                 )
-                self.inference_programs[worker_idx][component] = sf.Program(
-                    modules=component_modules,
-                    devices=worker_devices,
-                    isolation=self.prog_isolation,
-                    trace_execution=self.trace_execution,
+                self.inference_programs[worker_idx][component] = self.create_program(
+                    modules=component_modules, devices=worker_devices
                 )
+        self.initialize_inference_functions()
+        self.batcher.launch()
 
+    def initialize_inference_functions(self):
         for worker_idx, worker in enumerate(self.workers):
             self.inference_functions[worker_idx]["encode"] = {}
             for bs in self.model_params.clip_batch_sizes:
@@ -192,35 +148,6 @@ class GenerateService:
                 ] = self.inference_programs[worker_idx]["vae"][
                     f"{self.model_params.vae_module_name}.decode"
                 ]
-        self.batcher.launch()
-
-    def shutdown(self):
-        self.batcher.shutdown()
-
-    def __repr__(self):
-        modules = [
-            f"     {key} : {value}" for key, value in self.inference_modules.items()
-        ]
-        params = [
-            f"     {key} : {value}" for key, value in self.inference_parameters.items()
-        ]
-        # For python 3.11 since we can't have \ in the f"" expression.
-        new_line = "\n"
-        return (
-            f"ServiceManager("
-            f"\n  INFERENCE DEVICES : \n"
-            f"     {self.sysman.ls.devices}\n"
-            f"\n  MODEL PARAMS : \n"
-            f"{self.model_params}"
-            f"\n  SERVICE PARAMS : \n"
-            f"     fibers per device : {self.fibers_per_device}\n"
-            f"     program isolation mode : {self.prog_isolation}\n"
-            f"\n  INFERENCE MODULES : \n"
-            f"{new_line.join(modules)}\n"
-            f"\n  INFERENCE PARAMETERS : \n"
-            f"{new_line.join(params)}\n"
-            f")"
-        )
 
 
 ########################################################################################
@@ -228,7 +155,7 @@ class GenerateService:
 ########################################################################################
 
 
-class BatcherProcess(sf.Process):
+class SDXLBatcherProcess(BatcherProcess):
     """The batcher is a persistent process responsible for flighting incoming work
     into batches.
     """
@@ -236,48 +163,17 @@ class BatcherProcess(sf.Process):
     STROBE_SHORT_DELAY = 0.5
     STROBE_LONG_DELAY = 1
 
-    def __init__(self, service: GenerateService):
+    def __init__(self, service: SDXLGenerateService):
         super().__init__(fiber=service.meta_fibers[0].fiber)
         self.service = service
-        self.batcher_infeed = self.system.create_queue()
-        self.pending_requests: set[InferenceExecRequest] = set()
-        self.strobe_enabled = True
-        self.strobes: int = 0
         self.ideal_batch_size: int = max(service.model_params.all_batch_sizes)
         self.num_fibers = len(service.meta_fibers)
 
-    def shutdown(self):
-        self.batcher_infeed.close()
+    def handle_inference_request(self, request):
+        self.pending_requests.add(request)
 
-    def submit(self, request: StrobeMessage | InferenceExecRequest):
-        self.batcher_infeed.write_nodelay(request)
-
-    async def _background_strober(self):
-        while not self.batcher_infeed.closed:
-            await asyncio.sleep(
-                BatcherProcess.STROBE_SHORT_DELAY
-                if len(self.pending_requests) > 0
-                else BatcherProcess.STROBE_LONG_DELAY
-            )
-            if self.strobe_enabled:
-                self.submit(StrobeMessage())
-
-    async def run(self):
-        strober_task = asyncio.create_task(self._background_strober())
-        reader = self.batcher_infeed.reader()
-        while item := await reader():
-            self.strobe_enabled = False
-            if isinstance(item, InferenceExecRequest):
-                self.pending_requests.add(item)
-            elif isinstance(item, StrobeMessage):
-                self.strobes += 1
-            else:
-                logger.error("Illegal message received by batcher: %r", item)
-
-            await self.board_flights()
-
-            self.strobe_enabled = True
-        await strober_task
+    async def process_batches(self):
+        await self.board_flights()
 
     async def board_flights(self):
         waiting_count = len(self.pending_requests)
@@ -301,37 +197,6 @@ class BatcherProcess(sf.Process):
             if self.service.prog_isolation != sf.ProgramIsolation.PER_FIBER:
                 self.service.idle_meta_fibers.append(meta_fiber)
 
-    def sort_batches(self):
-        """Files pending requests into sorted batches suitable for program invocations."""
-        reqs = self.pending_requests
-        next_key = 0
-        batches = {}
-        for req in reqs:
-            is_sorted = False
-            req_metas = [req.phases[phase]["metadata"] for phase in req.phases.keys()]
-
-            for idx_key, data in batches.items():
-                if not isinstance(data, dict):
-                    logger.error(
-                        "Expected to find a dictionary containing a list of requests and their shared metadatas."
-                    )
-                if len(batches[idx_key]["reqs"]) >= self.ideal_batch_size:
-                    # Batch is full
-                    next_key = idx_key + 1
-                    continue
-                elif data["meta"] == req_metas:
-                    batches[idx_key]["reqs"].extend([req])
-                    is_sorted = True
-                    break
-                else:
-                    next_key = idx_key + 1
-            if not is_sorted:
-                batches[next_key] = {
-                    "reqs": [req],
-                    "meta": req_metas,
-                }
-        return batches
-
     async def board(self, request, meta_fiber):
         exec_process = InferenceExecutorProcess(self.service, meta_fiber)
         exec_process.exec_request = request
@@ -349,7 +214,7 @@ class InferenceExecutorProcess(sf.Process):
 
     def __init__(
         self,
-        service: GenerateService,
+        service: SDXLGenerateService,
         meta_fiber,
     ):
         super().__init__(fiber=meta_fiber.fiber)

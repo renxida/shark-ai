@@ -6,10 +6,14 @@
 
 import asyncio
 import logging
+import os
 from pathlib import Path
+
 
 import shortfin as sf
 import shortfin.array as sfnp
+
+from ...utils import GenerateService, BatcherProcess
 
 from .kvcache.base_attention_cache import (
     BasePagedAttentionCache,
@@ -20,20 +24,14 @@ from .kvcache.trie_attention_cache import TriePagedAttentionCache
 from .kvcache.page_pool import PagePoolConfig, PagePool, PageInfo
 from .config_struct import ModelParams, ServerParams
 from .manager import SystemManager
-from .messages import InferenceExecRequest, InferencePhase, StrobeMessage
+from .messages import LlmInferenceExecRequest, InferencePhase
 from .tokenizer import Tokenizer
+from .service_debug_dumper import SERVICE_DEBUG_DUMPER
 
 logger = logging.getLogger(__name__)
 
-PROG_ISOLATIONS = {
-    isolation.name.lower(): isolation for isolation in sf.ProgramIsolation
-}
 
-import os
-from .service_debug_dumper import SERVICE_DEBUG_DUMPER
-
-
-class GenerateService:
+class LlmGenerateService(GenerateService):
     """Top level service interface for generating text against a model."""
 
     inference_program: sf.Program
@@ -50,71 +48,56 @@ class GenerateService:
         server_params: "ServerParams",
         program_isolation: str = "per_call",
     ):
+        super().__init__(sysman)
         self.name = name
-
-        # Application objects.
-        self.sysman = sysman
         self.tokenizer = tokenizer
         self.model_params = model_params
         self.server_params = server_params
-        self.inference_parameters: list[sf.BaseProgramParameters] = []
-        self.inference_modules: list[sf.ProgramModule] = []
 
-        self.main_worker = sysman.ls.create_worker(f"{name}-inference")
-        self.main_fiber = sysman.ls.create_fiber(self.main_worker)
+        self.set_isolation(program_isolation)
+        self.initialize_worker_and_fiber()
+        self.initialize_page_cache()
+        self.batcher = LlmBatcherProcess(self)
 
-        # Scope dependent objects.
-        self.batcher = BatcherProcess(self)
+    def initialize_worker_and_fiber(self):
+        self.main_worker = self.sysman.ls.create_worker(f"{self.name}-inference")
+        self.main_fiber = self.sysman.ls.create_fiber(self.main_worker)
+
+    def initialize_page_cache(self):
+        """Initialize page pool and attention cache."""
         page_pool_config = PagePoolConfig(
-            dtype=model_params.attn_dtype,
-            alloc_page_count=model_params.paged_kv_cache.device_block_count,
-            paged_kv_block_size_elements=model_params.paged_kv_block_size_elements,
+            dtype=self.model_params.attn_dtype,
+            alloc_page_count=self.model_params.paged_kv_cache.device_block_count,
+            paged_kv_block_size_elements=self.model_params.paged_kv_block_size_elements,
         )
         page_pool = PagePool(
             devices=self.main_fiber.devices_dict.values(), config=page_pool_config
         )
-        if server_params.prefix_sharing_algorithm == "trie":
+
+        if self.server_params.prefix_sharing_algorithm == "trie":
             self.page_cache = TriePagedAttentionCache(
                 page_pool=page_pool,
-                tokens_per_page=model_params.paged_kv_cache.block_seq_stride,
+                tokens_per_page=self.model_params.paged_kv_cache.block_seq_stride,
             )
-        elif server_params.prefix_sharing_algorithm == "none":
+        elif self.server_params.prefix_sharing_algorithm == "none":
             self.page_cache = BasePagedAttentionCache(
                 page_pool=page_pool,
-                tokens_per_page=model_params.paged_kv_cache.block_seq_stride,
+                tokens_per_page=self.model_params.paged_kv_cache.block_seq_stride,
             )
         else:
             raise ValueError(
-                f"Unknown prefix_sharing_algorithm {server_params.prefix_sharing_algorithm}. Currently only supporting 'trie' and 'none'."
+                f"Unknown prefix_sharing_algorithm {self.server_params.prefix_sharing_algorithm}. Currently only supporting 'trie' and 'none'."
             )
 
-        self.program_isolation = PROG_ISOLATIONS[program_isolation]
-
-    def load_inference_module(self, vmfb_path: Path):
-        self.inference_modules.append(sf.ProgramModule.load(self.sysman.ls, vmfb_path))
-
-    def load_inference_parameters(
-        self, *paths: Path, parameter_scope: str, format: str = ""
-    ):
-        p = sf.StaticProgramParameters(self.sysman.ls, parameter_scope=parameter_scope)
-        for path in paths:
-            logging.info("Loading parameter fiber '%s' from: %s", parameter_scope, path)
-            p.load(path, format=format)
-        self.inference_parameters.append(p)
-
     def start(self):
-        self.inference_program = sf.Program(
-            modules=[
-                sf.ProgramModule.parameter_provider(
-                    self.sysman.ls, *self.inference_parameters
-                )
-            ]
-            + self.inference_modules,
-            devices=self.sysman.ls.devices,
-            trace_execution=False,
-            isolation=self.program_isolation,
+        component_modules = self.initialize_program_modules("main")
+        self.inference_program = self.create_program(
+            modules=component_modules, devices=self.sysman.ls.devices
         )
-        # Resolve prefill entrypoints.
+        self.initialize_function_references()
+        self.batcher.launch()
+
+    def initialize_function_references(self):
         self.prefill_functions = {}
         for bs in self.model_params.prefill_batch_sizes:
             self.prefill_functions[bs] = self.inference_program[
@@ -126,12 +109,6 @@ class GenerateService:
             self.decode_functions[bs] = self.inference_program[
                 f"{self.model_params.module_name}.decode_bs{bs}"
             ]
-
-        # Start persistent processes.
-        self.batcher.launch()
-
-    def shutdown(self):
-        self.batcher.shutdown()
 
     def __repr__(self):
         return (
@@ -150,7 +127,7 @@ class GenerateService:
 import math
 
 
-class BatcherProcess(sf.Process):
+class LlmBatcherProcess(BatcherProcess):
     """The batcher is a persistent process responsible for flighting incoming work
     into batches and handling the requisite cache allocations (since every batch needs
     committed cache state).
@@ -159,57 +136,31 @@ class BatcherProcess(sf.Process):
     STROBE_SHORT_DELAY = 0.1
     STROBE_LONG_DELAY = 0.25
 
-    def __init__(self, service: GenerateService):
+    def __init__(self, service: LlmGenerateService):
         super().__init__(fiber=service.main_fiber)
         self.service = service
-        self.batcher_infeed = self.system.create_queue()
-        self.pending_prefills: set[InferenceExecRequest] = set()
-        self.pending_decodes: set[InferenceExecRequest] = set()
-        self.strobe_enabled = True
-        self.strobes: int = 0
+        self.pending_prefills: set[LlmInferenceExecRequest] = set()
+        self.pending_decodes: set[LlmInferenceExecRequest] = set()
         # TODO: There is no "ideal" batch size. Use prefill/decode dynamic
         # batching in the scheduling algo.
         self.ideal_batch_size: int = max(service.model_params.prefill_batch_sizes)
         self.page_seq_stride = service.model_params.paged_kv_cache.block_seq_stride
 
-    def shutdown(self):
-        self.batcher_infeed.close()
+    def handle_inference_request(self, request):
+        """Handle an inference request."""
+        phase = request.phase
+        if phase == InferencePhase.PREFILL:
+            self.pending_prefills.add(request)
+        elif phase == InferencePhase.DECODE:
+            self.pending_decodes.add(request)
+        else:
+            logger.error("Illegal LlmInferenceExecRequest phase: %r", phase)
 
-    def submit(self, request: StrobeMessage | InferenceExecRequest):
-        self.batcher_infeed.write_nodelay(request)
+    async def process_batches(self):
+        """Process batches of requests."""
+        await self.board_flights()
 
-    async def _background_strober(self):
-        while not self.batcher_infeed.closed:
-            await asyncio.sleep(
-                BatcherProcess.STROBE_SHORT_DELAY
-                if len(self.pending_prefills) > 0
-                else BatcherProcess.STROBE_LONG_DELAY
-            )
-            if self.strobe_enabled:
-                self.submit(StrobeMessage())
-
-    async def run(self):
-        strober_task = asyncio.create_task(self._background_strober())
-        reader = self.batcher_infeed.reader()
-        while item := await reader():
-            self.strobe_enabled = False
-            if isinstance(item, InferenceExecRequest):
-                phase = item.phase
-                if phase == InferencePhase.PREFILL:
-                    self.pending_prefills.add(item)
-                elif phase == InferencePhase.DECODE:
-                    self.pending_decodes.add(item)
-                else:
-                    logger.error("Illegal InferenceExecRequest phase: %r", phase)
-            elif isinstance(item, StrobeMessage):
-                self.strobes += 1
-            else:
-                logger.error("Illegal message received by batcher: %r", item)
-            self.board_flights()
-            self.strobe_enabled = True
-        await strober_task
-
-    def board_flights(self):
+    async def board_flights(self):
         waiting_count = len(self.pending_prefills) + len(self.pending_decodes)
         if waiting_count == 0:
             return
@@ -311,7 +262,7 @@ class InferenceExecutorProcess(sf.Process):
 
     def __init__(
         self,
-        service: GenerateService,
+        service: LlmGenerateService,
         phase: InferencePhase,
         seq_stride: int,
         page_tables,
@@ -320,7 +271,7 @@ class InferenceExecutorProcess(sf.Process):
         self.service = service
         self.phase = phase
         self.seq_stride = seq_stride
-        self.exec_requests: list[InferenceExecRequest] = []
+        self.exec_requests: list[LlmInferenceExecRequest] = []
         self.page_tables = page_tables
 
     async def run(self):
