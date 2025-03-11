@@ -9,7 +9,7 @@ from typing import Any, Optional, Generator, AsyncGenerator, Callable, Union
 logger = logging.getLogger("shortfin-llm.tracing")
 
 # Base class for tracing backends
-class TracingBackend:
+class BaseTracingBackend:
     def init(self, app_name: str) -> None:
         pass
 
@@ -21,7 +21,7 @@ class TracingBackend:
 
 
 # Logging-based backend
-class LoggingBackend(TracingBackend):
+class LoggerTracingBackend(BaseTracingBackend):
     def __init__(self):
         # Frame tracking - maps (frame_name, task_id) to start time
         self._frames = {}
@@ -49,7 +49,7 @@ class LoggingBackend(TracingBackend):
 
 
 # Tracy backend (placeholder)
-class TracyBackend(TracingBackend):
+class TracyTracingBackend(BaseTracingBackend):
     def init(self, app_name: str) -> None:
         raise NotImplementedError("Tracy tracing not yet implemented")
 
@@ -64,7 +64,7 @@ class TracyBackend(TracingBackend):
 class TracingConfig:
     enabled: bool = True
     app_name: str = "ShortfinLLM"
-    backend: TracingBackend = LoggingBackend()
+    backend: BaseTracingBackend = LoggerTracingBackend()
     _initialized: bool = False
 
     @classmethod
@@ -79,9 +79,9 @@ class TracingConfig:
     @classmethod
     def set_backend(cls, backend_name: str) -> None:
         if backend_name == "log":
-            cls.backend = LoggingBackend()
+            cls.backend = LoggerTracingBackend()
         elif backend_name == "tracy":
-            cls.backend = TracyBackend()
+            cls.backend = TracyTracingBackend()
         else:
             raise ValueError(f"Unsupported tracing backend: {backend_name}")
         cls._ensure_initialized()
