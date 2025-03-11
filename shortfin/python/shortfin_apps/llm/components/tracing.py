@@ -48,18 +48,6 @@ class LoggerTracingBackend(BaseTracingBackend):
         logger.info(msg)
 
 
-# Tracy backend (placeholder)
-class TracyTracingBackend(BaseTracingBackend):
-    def init(self, app_name: str) -> None:
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-    def frame_enter(self, frame_name: str, task_id: str) -> None:
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-    def frame_exit(self, frame_name: str, task_id: str) -> None:
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-
 # Global tracing configuration
 class TracingConfig:
     enabled: bool = True
@@ -81,7 +69,14 @@ class TracingConfig:
         if backend_name == "log":
             cls.backend = LoggerTracingBackend()
         elif backend_name == "tracy":
-            cls.backend = TracyTracingBackend()
+            # Import the Tracy backend when requested
+            try:
+                from .tracy_tracing import TracyTracingBackend
+
+                cls.backend = TracyTracingBackend()
+            except ImportError as e:
+                logger.error(f"Failed to import Tracy backend: {e}")
+                raise ValueError(f"Tracy backend not available: {e}")
         else:
             raise ValueError(f"Unsupported tracing backend: {backend_name}")
         cls._ensure_initialized()
