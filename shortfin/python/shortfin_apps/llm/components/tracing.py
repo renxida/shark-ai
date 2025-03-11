@@ -3,20 +3,69 @@ import logging
 import time
 import asyncio
 from contextlib import contextmanager, asynccontextmanager
-from typing import Any, Dict, Optional, Generator, AsyncGenerator, Callable, Union
+from typing import Any, Optional, Generator, AsyncGenerator, Callable, Union
 
 # Configure logger
 logger = logging.getLogger("shortfin-llm.tracing")
 
-# Flag to track initialization status
-_INITIALIZED = False
+# Base class for tracing backends
+class TracingBackend:
+    def init(self, app_name: str) -> None:
+        pass
 
-# Global configuration
+    def frame_enter(self, frame_name: str, task_id: str) -> None:
+        pass
+
+    def frame_exit(self, frame_name: str, task_id: str) -> None:
+        pass
+
+
+# Logging-based backend
+class LoggingBackend(TracingBackend):
+    def __init__(self):
+        # Frame tracking - maps (frame_name, task_id) to start time
+        self._frames = {}
+
+    def init(self, app_name: str) -> None:
+        pass
+
+    def frame_enter(self, frame_name: str, task_id: str) -> None:
+        key = (frame_name, task_id)
+        self._frames[key] = time.time()
+
+    def frame_exit(self, frame_name: str, task_id: str) -> None:
+        key = (frame_name, task_id)
+        if key not in self._frames:
+            logger.warning(
+                f"TRACE: Exit without matching enter for {frame_name} [task={task_id}]"
+            )
+            return
+
+        duration_ms = round((time.time() - self._frames[key]) * 1e3)
+        del self._frames[key]
+
+        msg = f"TRACE: {frame_name} [task={task_id}] completed in {duration_ms}ms"
+        logger.info(msg)
+
+
+# Tracy backend (placeholder)
+class TracyBackend(TracingBackend):
+    def init(self, app_name: str) -> None:
+        raise NotImplementedError("Tracy tracing not yet implemented")
+
+    def frame_enter(self, frame_name: str, task_id: str) -> None:
+        raise NotImplementedError("Tracy tracing not yet implemented")
+
+    def frame_exit(self, frame_name: str, task_id: str) -> None:
+        raise NotImplementedError("Tracy tracing not yet implemented")
+
+
+# Global tracing configuration
 class TracingConfig:
     enabled: bool = True
-    backend: str = "log"  # 'log' or 'tracy'
-    detail_level: int = 1  # 0=minimal, 1=standard, 2=verbose
     app_name: str = "ShortfinLLM"
+    backend: TracingBackend = LoggingBackend()
+    _initialized: bool = False
 
     @classmethod
     def is_enabled(cls) -> bool:
@@ -25,218 +74,136 @@ class TracingConfig:
     @classmethod
     def set_enabled(cls, enabled: bool) -> None:
         cls.enabled = enabled
-        _ensure_initialized()
+        cls._ensure_initialized()
 
     @classmethod
-    def set_backend(cls, backend: str) -> None:
-        if backend not in ["log", "tracy"]:
-            raise ValueError(f"Unsupported tracing backend: {backend}")
-        cls.backend = backend
-        _ensure_initialized()
-
-    @classmethod
-    def set_detail_level(cls, level: int) -> None:
-        if level not in [0, 1, 2]:
-            raise ValueError(f"Unsupported detail level: {level}")
-        cls.detail_level = level
+    def set_backend(cls, backend_name: str) -> None:
+        if backend_name == "log":
+            cls.backend = LoggingBackend()
+        elif backend_name == "tracy":
+            cls.backend = TracyBackend()
+        else:
+            raise ValueError(f"Unsupported tracing backend: {backend_name}")
+        cls._ensure_initialized()
 
     @classmethod
     def set_app_name(cls, app_name: str) -> None:
         cls.app_name = app_name
-        _ensure_initialized()
+        cls._ensure_initialized()
 
-
-def _ensure_initialized() -> None:
-    """Ensure that Tracy is initialized if it's being used."""
-    global _INITIALIZED
-
-    if _INITIALIZED:
-        return
-
-    if not TracingConfig.is_enabled():
-        return
-
-    if TracingConfig.backend == "tracy":
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-    _INITIALIZED = True
-
-
-# Core tracing functions
-def frame_enter(
-    task: str, attributes: Optional[Dict[str, Any]] = None, detail_level: int = 1
-) -> Optional[Dict[str, Any]]:
-    """Enter a tracing frame for a task with attributes."""
-    if not TracingConfig.is_enabled() or TracingConfig.detail_level < detail_level:
-        return None
-
-    _ensure_initialized()
-    frame_data = {
-        "task": task,
-        "attributes": attributes or {},
-        "start_time": time.time(),
-        "detail_level": detail_level,
-        "zone": None,
-    }
-
-    # If using tracy backend, create a zone
-    if TracingConfig.backend == "tracy":
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-    # Log entry event if detail level high enough
-    if detail_level >= 2:
-        attrs_str = ""
-        if attributes:
-            attrs_list = [f"{k}={v}" for k, v in (attributes or {}).items()]
-            attrs_str = f" [{', '.join(attrs_list)}]"
-
-        msg = f"ENTER: {task}{attrs_str}"
-        logger.info(msg)
-
-    return frame_data
-
-
-def frame_exit(
-    frame_data: Optional[Dict[str, Any]], exc_info: tuple = (None, None, None)
-) -> None:
-    """Exit a tracing frame and log duration."""
-    if frame_data is None:
-        return
-
-    if not TracingConfig.is_enabled() or TracingConfig.detail_level < frame_data.get(
-        "detail_level", 0
-    ):
-        return
-
-    duration = time.time() - frame_data["start_time"]
-    task = frame_data["task"]
-    attributes = frame_data["attributes"]
-
-    # If using tracy backend, end the zone
-    if TracingConfig.backend == "tracy" and frame_data.get("zone") is not None:
-        raise NotImplementedError("Tracy tracing not yet implemented")
-
-    # Log the duration
-    duration_ms = round(duration * 1e3)
-    attrs_str = ""
-
-    if attributes:
-        attrs_list = [f"{k}={v}" for k, v in attributes.items()]
-        attrs_str = f" [{', '.join(attrs_list)}]"
-
-    msg = f"EXIT: {task} in {duration_ms}ms{attrs_str}"
-
-    if TracingConfig.backend == "log":
-        logger.info(msg)
-    elif TracingConfig.backend == "tracy":
-        raise NotImplementedError("Tracy tracing not yet implemented")
+    @classmethod
+    def _ensure_initialized(cls) -> None:
+        if not cls._initialized and cls.enabled:
+            cls.backend.init(cls.app_name)
+            cls._initialized = True
 
 
 # Context managers for manual tracing
 @contextmanager
-def trace_context(
-    task: str, attributes: Optional[Dict[str, Any]] = None, detail_level: int = 1
-) -> Generator[None, None, None]:
+def trace_context(frame_name: str, task_id: str) -> Generator[None, None, None]:
     """Context manager for manual tracing of code blocks."""
-    frame_data = frame_enter(task, attributes, detail_level)
+    if not TracingConfig.is_enabled():
+        yield
+        return
+
+    TracingConfig._ensure_initialized()
+    TracingConfig.backend.frame_enter(frame_name, task_id)
     try:
         yield
     finally:
-        frame_exit(frame_data, exc_info=(None, None, None))
+        TracingConfig.backend.frame_exit(frame_name, task_id)
 
 
 @asynccontextmanager
 async def async_trace_context(
-    task: str, attributes: Optional[Dict[str, Any]] = None, detail_level: int = 1
+    frame_name: str, task_id: str
 ) -> AsyncGenerator[None, None]:
     """Async context manager for manual tracing of code blocks."""
-    frame_data = frame_enter(task, attributes, detail_level)
+    if not TracingConfig.is_enabled():
+        yield
+        return
+
+    TracingConfig._ensure_initialized()
+    TracingConfig.backend.frame_enter(frame_name, task_id)
     try:
         yield
     finally:
-        frame_exit(frame_data, exc_info=(None, None, None))
+        TracingConfig.backend.frame_exit(frame_name, task_id)
 
 
 # Decorator for function tracing
-def trace_fn(task: Optional[str] = None, detail_level: int = 1):
+def trace_fn(frame_name: Optional[str] = None):
     """
     Decorator for tracing function execution.
 
     Args:
-        task: Description of the task being executed (defaults to function name)
-        detail_level: Minimum detail level required to capture this trace
+        frame_name: Description of the function (defaults to function name)
     """
 
     def _decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapped_fn_async(*args: Any, **kwargs: Any) -> Any:
-            if (
-                not TracingConfig.is_enabled()
-                or TracingConfig.detail_level < detail_level
-            ):
+            if not TracingConfig.is_enabled():
                 return await func(*args, **kwargs)
 
-            # Extract function name if task not provided
-            fn_task = task if task is not None else func.__name__
+            # Use function name if frame_name not provided
+            fn_name = frame_name if frame_name is not None else func.__name__
 
-            # Extract request ID if available
-            attributes = {}
+            # Extract task ID if available
+            task_id = "unknown"
             if len(args) > 0:
                 if hasattr(args[0], "request_id"):
-                    attributes["request_id"] = getattr(args[0], "request_id")
+                    task_id = getattr(args[0], "request_id")
                 elif (
                     hasattr(args[0], "exec_requests")
                     and len(getattr(args[0], "exec_requests", [])) > 0
                 ):
                     first_req = getattr(args[0], "exec_requests")[0]
                     if hasattr(first_req, "request_id"):
-                        attributes["request_id"] = getattr(first_req, "request_id")
+                        task_id = getattr(first_req, "request_id")
 
-            # Create tracing frame
-            frame_data = frame_enter(fn_task, attributes, detail_level)
+            # Start tracing
+            TracingConfig._ensure_initialized()
+            TracingConfig.backend.frame_enter(fn_name, task_id)
 
             try:
                 # Execute the function
-                ret = await func(*args, **kwargs)
-                return ret
+                return await func(*args, **kwargs)
             finally:
-                # End tracing frame
-                frame_exit(frame_data)
+                # End tracing
+                TracingConfig.backend.frame_exit(fn_name, task_id)
 
         @functools.wraps(func)
         def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
-            if (
-                not TracingConfig.is_enabled()
-                or TracingConfig.detail_level < detail_level
-            ):
+            if not TracingConfig.is_enabled():
                 return func(*args, **kwargs)
 
-            # Extract function name if task not provided
-            fn_task = task if task is not None else func.__name__
+            # Use function name if frame_name not provided
+            fn_name = frame_name if frame_name is not None else func.__name__
 
-            # Extract request ID if available
-            attributes = {}
+            # Extract task ID if available
+            task_id = "unknown"
             if len(args) > 0:
                 if hasattr(args[0], "request_id"):
-                    attributes["request_id"] = getattr(args[0], "request_id")
+                    task_id = getattr(args[0], "request_id")
                 elif (
                     hasattr(args[0], "exec_requests")
                     and len(getattr(args[0], "exec_requests", [])) > 0
                 ):
                     first_req = getattr(args[0], "exec_requests")[0]
                     if hasattr(first_req, "request_id"):
-                        attributes["request_id"] = getattr(first_req, "request_id")
+                        task_id = getattr(first_req, "request_id")
 
-            # Create tracing frame
-            frame_data = frame_enter(fn_task, attributes, detail_level)
+            # Start tracing
+            TracingConfig._ensure_initialized()
+            TracingConfig.backend.frame_enter(fn_name, task_id)
 
             try:
                 # Execute the function
-                ret = func(*args, **kwargs)
-                return ret
+                return func(*args, **kwargs)
             finally:
-                # End tracing frame
-                frame_exit(frame_data)
+                # End tracing
+                TracingConfig.backend.frame_exit(fn_name, task_id)
 
         # Return async or sync wrapper based on function type
         if asyncio.iscoroutinefunction(func):
