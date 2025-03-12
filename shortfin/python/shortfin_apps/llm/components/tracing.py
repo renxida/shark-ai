@@ -13,38 +13,38 @@ class BaseTracingBackend:
     def init(self, app_name: str) -> None:
         pass
 
-    def frame_enter(self, frame_name: str, task_id: str) -> None:
+    def frame_enter(self, frame_name: str, request_id: str) -> None:
         pass
 
-    def frame_exit(self, frame_name: str, task_id: str) -> None:
+    def frame_exit(self, frame_name: str, request_id: str) -> None:
         pass
 
 
 # Logging-based backend
 class LoggerTracingBackend(BaseTracingBackend):
     def __init__(self):
-        # Frame tracking - maps (frame_name, task_id) to start time
+        # Frame tracking - maps (frame_name, request_id) to start time
         self._frames = {}
 
     def init(self, app_name: str) -> None:
         pass
 
-    def frame_enter(self, frame_name: str, task_id: str) -> None:
-        key = (frame_name, task_id)
+    def frame_enter(self, frame_name: str, request_id: str) -> None:
+        key = (frame_name, request_id)
         self._frames[key] = time.time()
 
-    def frame_exit(self, frame_name: str, task_id: str) -> None:
-        key = (frame_name, task_id)
+    def frame_exit(self, frame_name: str, request_id: str) -> None:
+        key = (frame_name, request_id)
         if key not in self._frames:
             logger.warning(
-                f"TRACE: Exit without matching enter for {frame_name} [task={task_id}]"
+                f"TRACE: Exit without matching enter for {frame_name} [task={request_id}]"
             )
             return
 
         duration_ms = round((time.time() - self._frames[key]) * 1e3)
         del self._frames[key]
 
-        msg = f"TRACE: {frame_name} [task={task_id}] completed in {duration_ms}ms"
+        msg = f"TRACE: {frame_name} [task={request_id}] completed in {duration_ms}ms"
         logger.info(msg)
 
 
@@ -95,23 +95,23 @@ class TracingConfig:
 
 # Context managers for manual tracing
 @contextmanager
-def trace_context(frame_name: str, task_id: str) -> Generator[None, None, None]:
+def trace_context(frame_name: str, request_id: str) -> Generator[None, None, None]:
     """Context manager for manual tracing of code blocks."""
     if not TracingConfig.is_enabled():
         yield
         return
 
     TracingConfig._ensure_initialized()
-    TracingConfig.backend.frame_enter(frame_name, task_id)
+    TracingConfig.backend.frame_enter(frame_name, request_id)
     try:
         yield
     finally:
-        TracingConfig.backend.frame_exit(frame_name, task_id)
+        TracingConfig.backend.frame_exit(frame_name, request_id)
 
 
 @asynccontextmanager
 async def async_trace_context(
-    frame_name: str, task_id: str
+    frame_name: str, request_id: str
 ) -> AsyncGenerator[None, None]:
     """Async context manager for manual tracing of code blocks."""
     if not TracingConfig.is_enabled():
@@ -119,11 +119,11 @@ async def async_trace_context(
         return
 
     TracingConfig._ensure_initialized()
-    TracingConfig.backend.frame_enter(frame_name, task_id)
+    TracingConfig.backend.frame_enter(frame_name, request_id)
     try:
         yield
     finally:
-        TracingConfig.backend.frame_exit(frame_name, task_id)
+        TracingConfig.backend.frame_exit(frame_name, request_id)
 
 
 # Decorator for function tracing
@@ -145,28 +145,28 @@ def trace_fn(frame_name: Optional[str] = None):
             fn_name = frame_name if frame_name is not None else func.__name__
 
             # Extract task ID if available
-            task_id = "unknown"
+            request_id = "unknown"
             if len(args) > 0:
                 if hasattr(args[0], "request_id"):
-                    task_id = getattr(args[0], "request_id")
+                    request_id = getattr(args[0], "request_id")
                 elif (
                     hasattr(args[0], "exec_requests")
                     and len(getattr(args[0], "exec_requests", [])) > 0
                 ):
                     first_req = getattr(args[0], "exec_requests")[0]
                     if hasattr(first_req, "request_id"):
-                        task_id = getattr(first_req, "request_id")
+                        request_id = getattr(first_req, "request_id")
 
             # Start tracing
             TracingConfig._ensure_initialized()
-            TracingConfig.backend.frame_enter(fn_name, task_id)
+            TracingConfig.backend.frame_enter(fn_name, request_id)
 
             try:
                 # Execute the function
                 return await func(*args, **kwargs)
             finally:
                 # End tracing
-                TracingConfig.backend.frame_exit(fn_name, task_id)
+                TracingConfig.backend.frame_exit(fn_name, request_id)
 
         @functools.wraps(func)
         def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
@@ -177,28 +177,28 @@ def trace_fn(frame_name: Optional[str] = None):
             fn_name = frame_name if frame_name is not None else func.__name__
 
             # Extract task ID if available
-            task_id = "unknown"
+            request_id = "unknown"
             if len(args) > 0:
                 if hasattr(args[0], "request_id"):
-                    task_id = getattr(args[0], "request_id")
+                    request_id = getattr(args[0], "request_id")
                 elif (
                     hasattr(args[0], "exec_requests")
                     and len(getattr(args[0], "exec_requests", [])) > 0
                 ):
                     first_req = getattr(args[0], "exec_requests")[0]
                     if hasattr(first_req, "request_id"):
-                        task_id = getattr(first_req, "request_id")
+                        request_id = getattr(first_req, "request_id")
 
             # Start tracing
             TracingConfig._ensure_initialized()
-            TracingConfig.backend.frame_enter(fn_name, task_id)
+            TracingConfig.backend.frame_enter(fn_name, request_id)
 
             try:
                 # Execute the function
                 return func(*args, **kwargs)
             finally:
                 # End tracing
-                TracingConfig.backend.frame_exit(fn_name, task_id)
+                TracingConfig.backend.frame_exit(fn_name, request_id)
 
         # Return async or sync wrapper based on function type
         if asyncio.iscoroutinefunction(func):
