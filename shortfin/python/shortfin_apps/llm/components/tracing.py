@@ -75,8 +75,7 @@ class TracingConfig:
 
                 cls.backend = TracyTracingBackend()
             except ImportError as e:
-                logger.error(f"Failed to import Tracy backend: {e}")
-                raise ValueError(f"Tracy backend not available: {e}")
+                raise NotImplementedError("Tracy backend is not implemented")
         else:
             raise ValueError(f"Unsupported tracing backend: {backend_name}")
         cls._ensure_initialized()
