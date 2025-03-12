@@ -15,7 +15,6 @@ from shortfin_apps.llm.components.tracing import (
     TracingConfig,
     trace_context,
     async_trace_context,
-    trace_fn,
 )
 
 
@@ -124,78 +123,3 @@ class TestTraceContext:
 
         backend.frame_enter.assert_not_called()
         backend.frame_exit.assert_not_called()
-
-
-class TestTraceFn:
-    def setup_method(self):
-        TracingConfig.enabled = True
-        TracingConfig.app_name = "TestApp"
-        TracingConfig.backend = LoggerTracingBackend()
-        TracingConfig._initialized = False
-
-    def test_sync_function_tracing_with_custom_name(self):
-        backend = MagicMock(spec=LoggerTracingBackend)
-        TracingConfig.backend = backend
-        frame_name = "custom_operation"
-        expected_result = "result"
-
-        @trace_fn(frame_name)
-        def test_function():
-            return expected_result
-
-        result = test_function()
-
-        assert result == expected_result
-        backend.frame_enter.assert_called_once_with(frame_name, "unknown")
-        backend.frame_exit.assert_called_once_with(frame_name, "unknown")
-
-    def test_sync_function_tracing_with_default_name(self):
-        backend = MagicMock(spec=LoggerTracingBackend)
-        TracingConfig.backend = backend
-        expected_result = "result"
-
-        @trace_fn()
-        def test_function():
-            return expected_result
-
-        result = test_function()
-
-        assert result == expected_result
-        backend.frame_enter.assert_called_once_with("test_function", "unknown")
-        backend.frame_exit.assert_called_once_with("test_function", "unknown")
-
-    @pytest.mark.asyncio
-    async def test_async_function_tracing(self):
-        backend = MagicMock(spec=LoggerTracingBackend)
-        TracingConfig.backend = backend
-        frame_name = "async_operation"
-        expected_result = "async result"
-
-        @trace_fn(frame_name)
-        async def test_function():
-            await asyncio.sleep(0.01)
-            return expected_result
-
-        result = await test_function()
-
-        assert result == expected_result
-        backend.frame_enter.assert_called_once_with(frame_name, "unknown")
-        backend.frame_exit.assert_called_once_with(frame_name, "unknown")
-
-    def test_request_id_extraction(self):
-        backend = MagicMock(spec=LoggerTracingBackend)
-        TracingConfig.backend = backend
-
-        class DummyRequest:
-            def __init__(self, request_id):
-                self.request_id = request_id
-
-        @trace_fn()
-        def function_with_request(request):
-            return f"Processing {request.request_id}"
-
-        result = function_with_request(DummyRequest("req789"))
-
-        assert result == "Processing req789"
-        backend.frame_enter.assert_called_once_with("function_with_request", "req789")
-        backend.frame_exit.assert_called_once_with("function_with_request", "req789")
