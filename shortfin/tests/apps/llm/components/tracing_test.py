@@ -51,14 +51,6 @@ class TestLoggerTracingBackend:
             )
 
 
-# Create a custom event loop for async tests instead of using pytest-asyncio
-@pytest.fixture
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 class TestTraceContext:
     def setup_method(self):
         TracingConfig.enabled = True
@@ -66,79 +58,61 @@ class TestTraceContext:
         TracingConfig.backend = LoggerTracingBackend()
         TracingConfig._initialized = False
 
-    @pytest.mark.parametrize(
-        "context_type,op_name,task_id",
-        [
-            (trace_context, "test_operation", "task123"),
-            pytest.param(
-                async_trace_context,
-                "async_operation",
-                "task456",
-                marks=pytest.mark.asyncio,
-            ),
-        ],
-    )
-    def test_trace_context(self, context_type, op_name, task_id, event_loop):
+    def test_sync_trace_context(self):
         backend = MagicMock(spec=LoggerTracingBackend)
         TracingConfig.backend = backend
+        op_name = "test_operation"
+        task_id = "task123"
 
-        if context_type == trace_context:
-            with context_type(op_name, task_id):
-                backend.frame_enter.assert_called_once_with(op_name, task_id)
-                backend.frame_exit.assert_not_called()
-
-            backend.frame_exit.assert_called_once_with(op_name, task_id)
-        else:
-
-            async def run_test():
-                async with context_type(op_name, task_id):
-                    backend.frame_enter.assert_called_once_with(op_name, task_id)
-                    backend.frame_exit.assert_not_called()
-
-                backend.frame_exit.assert_called_once_with(op_name, task_id)
-
-            event_loop.run_until_complete(run_test())
-
-    @pytest.mark.parametrize(
-        "context_type,op_name,task_id",
-        [
-            (trace_context, "test_operation", "task123"),
-            pytest.param(
-                async_trace_context,
-                "async_operation",
-                "task456",
-                marks=pytest.mark.asyncio,
-            ),
-        ],
-    )
-    def test_trace_context_with_exception(
-        self, context_type, op_name, task_id, event_loop
-    ):
-        backend = MagicMock(spec=LoggerTracingBackend)
-        TracingConfig.backend = backend
-
-        if context_type == trace_context:
-            try:
-                with context_type(op_name, task_id):
-                    raise ValueError("Test exception")
-            except ValueError:
-                pass
-
+        with trace_context(op_name, task_id):
             backend.frame_enter.assert_called_once_with(op_name, task_id)
-            backend.frame_exit.assert_called_once_with(op_name, task_id)
-        else:
+            backend.frame_exit.assert_not_called()
 
-            async def run_test():
-                try:
-                    async with context_type(op_name, task_id):
-                        raise ValueError("Test exception")
-                except ValueError:
-                    pass
+        backend.frame_exit.assert_called_once_with(op_name, task_id)
 
-                backend.frame_enter.assert_called_once_with(op_name, task_id)
-                backend.frame_exit.assert_called_once_with(op_name, task_id)
+    @pytest.mark.asyncio
+    async def test_async_trace_context(self):
+        backend = MagicMock(spec=LoggerTracingBackend)
+        TracingConfig.backend = backend
+        op_name = "async_operation"
+        task_id = "task456"
 
-            event_loop.run_until_complete(run_test())
+        async with async_trace_context(op_name, task_id):
+            backend.frame_enter.assert_called_once_with(op_name, task_id)
+            backend.frame_exit.assert_not_called()
+
+        backend.frame_exit.assert_called_once_with(op_name, task_id)
+
+    def test_sync_trace_context_with_exception(self):
+        backend = MagicMock(spec=LoggerTracingBackend)
+        TracingConfig.backend = backend
+        op_name = "test_operation"
+        task_id = "task123"
+
+        try:
+            with trace_context(op_name, task_id):
+                raise ValueError("Test exception")
+        except ValueError:
+            pass
+
+        backend.frame_enter.assert_called_once_with(op_name, task_id)
+        backend.frame_exit.assert_called_once_with(op_name, task_id)
+
+    @pytest.mark.asyncio
+    async def test_async_trace_context_with_exception(self):
+        backend = MagicMock(spec=LoggerTracingBackend)
+        TracingConfig.backend = backend
+        op_name = "async_operation"
+        task_id = "task456"
+
+        try:
+            async with async_trace_context(op_name, task_id):
+                raise ValueError("Test exception")
+        except ValueError:
+            pass
+
+        backend.frame_enter.assert_called_once_with(op_name, task_id)
+        backend.frame_exit.assert_called_once_with(op_name, task_id)
 
     def test_trace_context_disabled(self):
         TracingConfig.set_enabled(False)
@@ -159,39 +133,54 @@ class TestTraceFn:
         TracingConfig.backend = LoggerTracingBackend()
         TracingConfig._initialized = False
 
-    @pytest.mark.parametrize(
-        "is_async,frame_name,expected_frame_name,expected_result",
-        [
-            (False, "custom_operation", "custom_operation", "result"),
-            (False, None, "test_function", "result"),
-            (True, "async_operation", "async_operation", "async result"),
-        ],
-    )
-    def test_function_tracing(
-        self, is_async, frame_name, expected_frame_name, expected_result, event_loop
-    ):
+    def test_sync_function_tracing_with_custom_name(self):
         backend = MagicMock(spec=LoggerTracingBackend)
         TracingConfig.backend = backend
+        frame_name = "custom_operation"
+        expected_result = "result"
 
-        if is_async:
+        @trace_fn(frame_name)
+        def test_function():
+            return expected_result
 
-            @trace_fn(frame_name)
-            async def test_function():
-                await asyncio.sleep(0.01)
-                return expected_result
-
-            result = event_loop.run_until_complete(test_function())
-        else:
-
-            @trace_fn(frame_name)
-            def test_function():
-                return expected_result
-
-            result = test_function()
+        result = test_function()
 
         assert result == expected_result
-        backend.frame_enter.assert_called_once_with(expected_frame_name, "unknown")
-        backend.frame_exit.assert_called_once_with(expected_frame_name, "unknown")
+        backend.frame_enter.assert_called_once_with(frame_name, "unknown")
+        backend.frame_exit.assert_called_once_with(frame_name, "unknown")
+
+    def test_sync_function_tracing_with_default_name(self):
+        backend = MagicMock(spec=LoggerTracingBackend)
+        TracingConfig.backend = backend
+        expected_result = "result"
+
+        @trace_fn()
+        def test_function():
+            return expected_result
+
+        result = test_function()
+
+        assert result == expected_result
+        backend.frame_enter.assert_called_once_with("test_function", "unknown")
+        backend.frame_exit.assert_called_once_with("test_function", "unknown")
+
+    @pytest.mark.asyncio
+    async def test_async_function_tracing(self):
+        backend = MagicMock(spec=LoggerTracingBackend)
+        TracingConfig.backend = backend
+        frame_name = "async_operation"
+        expected_result = "async result"
+
+        @trace_fn(frame_name)
+        async def test_function():
+            await asyncio.sleep(0.01)
+            return expected_result
+
+        result = await test_function()
+
+        assert result == expected_result
+        backend.frame_enter.assert_called_once_with(frame_name, "unknown")
+        backend.frame_exit.assert_called_once_with(frame_name, "unknown")
 
     def test_request_id_extraction(self):
         backend = MagicMock(spec=LoggerTracingBackend)
