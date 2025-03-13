@@ -14,8 +14,8 @@ import shortfin as sf
 from shortfin.interop.fastapi import FastAPIResponder
 
 from .io_struct import GenerateReqInput
-from .messages import InferenceExecRequest
-from .service import GenerateService
+from .messages import FluxInferenceExecRequest
+from .service import FluxGenerateService
 from .metrics import measure
 
 logger = logging.getLogger("shortfin-flux.generate")
@@ -44,7 +44,7 @@ class GenerateImageProcess(sf.Process):
         self.result_image = None
 
     async def run(self):
-        exec = InferenceExecRequest.from_batch(self.gen_req, self.index)
+        exec = FluxInferenceExecRequest.from_batch(self.gen_req, self.index)
         self.client.batcher.submit(exec)
         await exec.done
         self.result_image = exec.result_image
@@ -71,7 +71,7 @@ class ClientGenerateBatchProcess(sf.Process):
 
     def __init__(
         self,
-        service: GenerateService,
+        service: FluxGenerateService,
         gen_req: GenerateReqInput,
         responder: FastAPIResponder,
     ):

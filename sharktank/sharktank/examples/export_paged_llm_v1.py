@@ -40,7 +40,13 @@ def main():
         default="/tmp/batch_llama_v1.json",
     )
     parser.add_argument(
-        "--bs",
+        "--bs-prefill",
+        help="Comma-separated batch size(s) to generate, e.g. `4` or `2,4`",
+        type=lambda arg: [int(bs) for bs in arg.split(",")],
+        default="4",
+    )
+    parser.add_argument(
+        "--bs-decode",
         help="Comma-separated batch size(s) to generate, e.g. `4` or `2,4`",
         type=lambda arg: [int(bs) for bs in arg.split(",")],
         default="4",
@@ -83,6 +89,7 @@ def main():
         block_seq_stride=args.block_seq_stride,
         activation_dtype=args.activation_dtype,
         attention_dtype=args.attention_dtype,
+        kv_cache_dtype=args.kv_cache_dtype,
     )
     llama_config.fake_quant = args.fake_quant
 
@@ -335,13 +342,14 @@ def main():
             return logits
 
     bsizes = []
-    for bs in args.bs:
-        if not args.skip_prefill:
+    if not args.skip_prefill:
+        for bs in args.bs_prefill:
             generate_batch_prefill(bs)
-        if not args.skip_decode:
+    if not args.skip_decode:
+        for bs in args.bs_decode:
             generate_batch_decode(bs)
-        bsizes.append(bs)
-    config = generate_params_json(hp, bsizes, bsizes)
+
+    config = generate_params_json(hp, args.bs_prefill, args.bs_decode)
     print("GENERATED!")
 
     if args.verbose:
