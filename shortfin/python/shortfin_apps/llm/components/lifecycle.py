@@ -16,8 +16,8 @@ def lifecycle(app: FastApi):
 
 
 from .config_struct import ModelParams, ServerParams
-from .manager import SystemManager
-from .service import GenerateService
+from .manager import LlmSystemManager
+from .service import LlmGenerateService
 from .tokenizer import Tokenizer
 from typing import TYPE_CHECKING
 from fastapi import FastAPI
@@ -55,7 +55,7 @@ class ShortfinLlmLifecycleManager:
         server_params.update_from_args(args)
 
         # Setup system (configure devices, etc).
-        sysman = SystemManager(
+        sysman = LlmSystemManager(
             device=args.device,
             device_ids=server_params.device_ids,
             async_allocs=server_params.amdgpu_async_allocations,
@@ -68,7 +68,7 @@ class ShortfinLlmLifecycleManager:
             args.tokenizer_json, eos_token=eos_token
         )
         model_params = ModelParams.load_json(args.model_config)
-        service = GenerateService(
+        service = LlmGenerateService(
             name="default",
             sysman=sysman,
             tokenizer=tokenizer,
