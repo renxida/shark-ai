@@ -62,12 +62,10 @@ def create_tp_settings(base_device: str, tp_count: int) -> DeviceSettings:
     """
     # Get base device settings
     if base_device in ["cpu", "host", "hostcpu", "local-task"]:
-        # CPU tensor parallelism
+        # CPU tensor parallelism - just use the HAL device targets for multi-device
         compile_flags = [
             "--iree-hal-target-backends=llvm-cpu",
             "--iree-llvmcpu-target-cpu=host",
-            "--iree-flow-dispatch-formation-enable-tensor-parallelism=true",
-            f"--iree-flow-dispatch-tensor-parallelism-min-tensors={tp_count}",
         ]
         for i in range(tp_count):
             compile_flags.append(f"--iree-hal-target-device=local-task[{i}]")
@@ -82,12 +80,10 @@ def create_tp_settings(base_device: str, tp_count: int) -> DeviceSettings:
             server_flags=tuple(server_flags),
         )
     else:
-        # GPU tensor parallelism
+        # GPU tensor parallelism - just use the HAL device targets for multi-device
         compile_flags = [
             "--iree-hal-target-backends=rocm",
             f"--iree-hip-target={base_device}",
-            "--iree-flow-dispatch-formation-enable-tensor-parallelism=true",
-            f"--iree-flow-dispatch-tensor-parallelism-min-tensors={tp_count}",
         ]
         for i in range(tp_count):
             compile_flags.append(f"--iree-hal-target-device=hip[{i}]")
@@ -172,15 +168,6 @@ def _test_tp_generation():
         assert len([f for f in settings.compile_flags if "target-device" in f]) == size
         # Verify it has the correct number of device IDs
         assert len([f for f in settings.server_flags if f.isdigit()]) == size
-        # Verify tensor parallelism flags are present
-        assert (
-            "--iree-flow-dispatch-formation-enable-tensor-parallelism=true"
-            in settings.compile_flags
-        )
-        assert (
-            f"--iree-flow-dispatch-tensor-parallelism-min-tensors={size}"
-            in settings.compile_flags
-        )
 
     # Test dynamic generation for new sizes
     for device, sizes in [("gfx942", [3, 8]), ("gfx90a", [2, 8]), ("cpu", [3, 8])]:
@@ -197,15 +184,7 @@ def _test_tp_generation():
             )
             # Verify it has the correct number of device IDs
             assert len([f for f in settings.server_flags if f.isdigit()]) == size
-            # Verify tensor parallelism flags are present
-            assert (
-                "--iree-flow-dispatch-formation-enable-tensor-parallelism=true"
-                in settings.compile_flags
-            )
-            assert (
-                f"--iree-flow-dispatch-tensor-parallelism-min-tensors={size}"
-                in settings.compile_flags
-            )
+            # Just check the device target count
             # Verify correct flags for device type
             if device.startswith("gfx"):
                 assert "--device=hip" in settings.server_flags

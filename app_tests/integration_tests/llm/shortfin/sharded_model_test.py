@@ -71,7 +71,6 @@ def check_available_resources(device_type):
 # Setup the model configuration
 # Note: The actual device settings are automatically applied by the model_artifacts fixture
 # which calls get_device_settings_by_name with the test_device parameter
-
 # Parametrize the test to use our dynamically named model
 pytestmark = pytest.mark.parametrize(
     "model_artifacts,server",
@@ -81,9 +80,8 @@ pytestmark = pytest.mark.parametrize(
     indirect=True,
 )
 
-# Test prompt and expected response pattern for tinystories
 PROMPT = "Once upon a time, there was a"
-EXPECTED_PATTERN = "little"  # Common word in children's stories
+EXPECTED_PATTERN = "little"
 
 
 class TestShardedModelServer:
@@ -105,11 +103,8 @@ class TestShardedModelServer:
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
 
-        # Verify sufficient resources are available
         available_resources, resource_type = check_available_resources(device_type)
-        minimum_resources_needed = (
-            TENSOR_PARALLELISM_SIZE  # Need at least TP size resources
-        )
+        minimum_resources_needed = TENSOR_PARALLELISM_SIZE
         if available_resources < minimum_resources_needed:
             logger.warning(
                 f"Available {resource_type} ({available_resources}) may be insufficient "
@@ -117,8 +112,7 @@ class TestShardedModelServer:
                 f"Recommended minimum: {minimum_resources_needed} {resource_type}."
             )
 
-        # Use same concurrent request count for both CPU and GPU
-        concurrent_requests = 3  # Fixed number of concurrent requests
+        concurrent_requests = 3
 
         logger.info(
             f"Testing with {test_device} (type: {device_type}), tensor parallelism: {TENSOR_PARALLELISM_SIZE}, "
@@ -158,7 +152,7 @@ class TestShardedModelServer:
             "text": prompt,
             "sampling_params": {
                 "max_completion_tokens": 15,
-                "temperature": 0.0,  # Use greedy sampling for deterministic output
+                "temperature": 0.0,
             },
             "rid": uuid.uuid4().hex,
             "stream": False,
