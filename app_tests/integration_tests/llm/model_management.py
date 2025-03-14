@@ -348,7 +348,7 @@ class ModelStageManager:
             result = subprocess.run(
                 shard_cmd, check=True, capture_output=True, text=True
             )
-            logger.info(f"Sharding succeeded: {result.stdout}")
+            logger.info(f"Sharding succeeded")
         except subprocess.CalledProcessError as e:
             logger.error(f"Sharding failed with code {e.returncode}")
             logger.error(f"STDOUT: {e.stdout}")
@@ -416,7 +416,7 @@ class ModelStageManager:
             result = subprocess.run(
                 export_cmd, check=True, capture_output=True, text=True
             )
-            logger.info(f"Export succeeded: {result.stdout}")
+            logger.info(f"Export succeeded.")
         except subprocess.CalledProcessError as e:
             logger.error(f"Export failed with code {e.returncode}")
             logger.error(f"STDOUT: {e.stdout}")
@@ -446,7 +446,7 @@ class ModelStageManager:
             result = subprocess.run(
                 compile_command, check=True, capture_output=True, text=True
             )
-            logger.info(f"Compilation succeeded: {result.stdout}")
+            logger.info(f"Compilation succeeded")
         except subprocess.CalledProcessError as e:
             logger.error(f"Compilation failed with code {e.returncode}")
             logger.error(f"STDOUT: {e.stdout}")
