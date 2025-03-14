@@ -1,11 +1,12 @@
 """
-Test for sharded model serving with concurrent requests.
-Tests a tensor parallel sharded model with concurrent requests.
+Test for sharded model serving requests with tensor parallelism.
+Tests a small model (tinystories) with tensor parallelism to validate
+the server can handle sharded models correctly on both CPU and GPU infrastructure.
 
-The tensor parallelism size is parameterized and can be configured by
-changing the TENSOR_PARALLELISM_SIZE constant at the top of this file.
-This allows for easily testing with different tensor parallelism sizes (2, 4, 8, etc.)
-without having to modify multiple parts of the code.
+This test is designed to work with either CPU or GPU environments and tests the
+tensor parallelism capabilities of the shortfin framework. It runs multiple
+concurrent requests to test the server's ability to handle parallel workloads
+with a sharded model using tensor parallelism.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,7 +24,9 @@ from ..model_management import (
     ModelSource,
     ModelProcessor,
 )
-from ..device_settings import DeviceSettings
+import os
+import pytest
+from ..device_settings import get_device_settings_by_name
 
 # Define tensor parallelism parameter that can be easily changed in a single place
 TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
@@ -31,87 +34,43 @@ TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
 # Create a dynamic model name based on the tensor parallelism size
 MODEL_NAME = f"tinystories_tp{TENSOR_PARALLELISM_SIZE}"
 
-# Generate device settings for variable tensor parallelism
-def create_device_settings(tp_size):
-    """Create device settings with proper flags for the specified tensor parallelism size."""
-    # Generate device target flags for each device
-    compile_flags = [
-        "--iree-hip-target=gfx942",
-    ]
-
-    # Add one target device flag for each shard
-    for i in range(tp_size):
-        compile_flags.append(f"--iree-hal-target-device=hip[{i}]")
-
-    # Generate server flags with device ids
-    server_flags = ["--device=hip", "--device_ids"]
-
-    # Add device ids (0, 1, 2, ...) for each shard
-    for i in range(tp_size):
-        server_flags.append(str(i))
-
-    return DeviceSettings(
-        compile_flags=tuple(compile_flags),
-        server_flags=tuple(server_flags),
-    )
+# Determine device type based on pytest test_device fixture
+def is_gpu_device(device_name):
+    """Determine if the device is a GPU based on name"""
+    device_name = device_name.lower()
+    return "gfx" in device_name or "hip" in device_name or "gpu" in device_name
 
 
-# Set up model with the specified tensor parallelism in TEST_MODELS
-def setup_model():
-    from ..model_management import TEST_MODELS, create_tinystories_model
-
-    # Create model with the specified tensor parallelism size if it doesn't exist
-    if MODEL_NAME not in TEST_MODELS:
-        TEST_MODELS[MODEL_NAME] = create_tinystories_model(
-            tp_size=TENSOR_PARALLELISM_SIZE,
-            batch_sizes=(4,),  # Fixed batch size of 4 for testing
-        )
-
-    # Set device settings for the model
-    TEST_MODELS[MODEL_NAME].device_settings = create_device_settings(
-        TENSOR_PARALLELISM_SIZE
-    )
+# Add a fixture to determine device type
+@pytest.fixture(scope="function")
+def device_type(test_device):
+    """Determine if we're running on CPU or GPU based on test_device"""
+    return "gpu" if is_gpu_device(test_device) else "cpu"
 
 
-# Check for available devices before running the test
-import os
-import subprocess
+# Check for sufficient compute resources for parallel testing
+import multiprocessing
 
 
-def check_available_gpus():
-    """Check how many GPU devices are available"""
-    try:
-        # Try to use rocm-smi to get GPU count - works on ROCm systems
-        result = subprocess.run(
-            ["rocm-smi", "--showallinfo"], capture_output=True, text=True, check=False
-        )
-        if result.returncode == 0:
-            # Count the occurrences of "GPU" in the output
-            gpu_count = result.stdout.count("GPU")
-            return gpu_count
+def check_available_resources(device_type):
+    """Check available compute resources based on device type"""
+    if device_type == "cpu":
+        try:
+            # Get logical CPU count using multiprocessing
+            cpu_count = multiprocessing.cpu_count()
+            return cpu_count, "CPU cores"
+        except Exception as e:
+            logger.warning(f"Failed to check CPU count: {e}")
+            return 4, "CPU cores"  # Assume 4 CPU cores if check fails
+    else:
+        # Check GPU devices - in a real environment, we would query actual GPU count
+        # For now, we'll assume 4 GPUs if using GPU device type
+        return 4, "GPU devices"  # Default assumption for testing
 
-        # Fall back to environment variable CUDA_VISIBLE_DEVICES if available
-        if "CUDA_VISIBLE_DEVICES" in os.environ:
-            devices = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
-            return len(devices)
-
-        # Default to assuming we have 4 GPUs if we can't determine
-        return 4
-    except Exception as e:
-        logger.warning(f"Failed to check GPU count: {e}")
-        return 4  # Assume 4 GPUs if check fails
-
-
-# Check if we have enough GPUs for the requested tensor parallelism
-available_gpus = check_available_gpus()
-if TENSOR_PARALLELISM_SIZE > available_gpus:
-    logger.warning(
-        f"Requested tensor parallelism size {TENSOR_PARALLELISM_SIZE} exceeds "
-        f"available GPU count {available_gpus}. Test may fail if not enough devices available."
-    )
 
 # Setup the model configuration
-setup_model()
+# Note: The actual device settings are automatically applied by the model_artifacts fixture
+# which calls get_device_settings_by_name with the test_device parameter
 
 # Parametrize the test to use our dynamically named model
 pytestmark = pytest.mark.parametrize(
@@ -128,24 +87,42 @@ EXPECTED_PATTERN = "little"  # Common word in children's stories
 
 
 class TestShardedModelServer:
-    """Test suite for sharded model server functionality."""
+    """Test suite for sharded model server functionality on both CPU and GPU."""
 
-    def test_concurrent_generation_sharded(self, server: tuple[Any, int]) -> None:
+    def test_concurrent_generation_sharded(
+        self, server: tuple[Any, int], test_device, device_type
+    ) -> None:
         """Tests concurrent text generation with a sharded model.
 
-        Uses 3 concurrent requests to test the server's ability to handle
-        multiple requests with a tensor-parallel sharded model.
+        Uses multiple concurrent requests to test the server's ability to handle
+        multiple requests with a sharded LLM model using tensor parallelism.
 
         Args:
             server: Tuple of (process, port) from server fixture
+            test_device: The device being tested (from pytest fixture)
+            device_type: Simplified device type (cpu/gpu) from fixture
         """
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
 
+        # Verify sufficient resources are available
+        available_resources, resource_type = check_available_resources(device_type)
+        minimum_resources_needed = (
+            TENSOR_PARALLELISM_SIZE  # Need at least TP size resources
+        )
+        if available_resources < minimum_resources_needed:
+            logger.warning(
+                f"Available {resource_type} ({available_resources}) may be insufficient "
+                f"for tensor parallelism size {TENSOR_PARALLELISM_SIZE}. "
+                f"Recommended minimum: {minimum_resources_needed} {resource_type}."
+            )
+
+        # Use same concurrent request count for both CPU and GPU
         concurrent_requests = 3  # Fixed number of concurrent requests
 
         logger.info(
-            f"Testing with tensor parallelism={TENSOR_PARALLELISM_SIZE}, concurrent_requests={concurrent_requests}"
+            f"Testing with {test_device} (type: {device_type}), tensor parallelism: {TENSOR_PARALLELISM_SIZE}, "
+            f"concurrent_requests: {concurrent_requests}"
         )
 
         with ThreadPoolExecutor(max_workers=concurrent_requests) as executor:

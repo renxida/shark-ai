@@ -314,8 +314,17 @@ class ModelStageManager:
         if not self.config.tensor_parallelism_size:
             return weights_path, None
 
+        # Determine device type from compile flags
+        device_type = "cpu"  # Default to CPU
+        compile_flags = self.config.device_settings.compile_flags
+        for flag in compile_flags:
+            if "hip" in flag.lower():
+                device_type = "cuda"  # Use "cuda" for hip device
+                break
+
         logger.info(
-            f"Sharding model with tensor parallelism size {self.config.tensor_parallelism_size}"
+            f"Sharding model with tensor parallelism size {self.config.tensor_parallelism_size} "
+            f"for device type: {device_type}"
         )
 
         # Determine output paths
@@ -323,18 +332,28 @@ class ModelStageManager:
         output_base = self.model_dir / f"{base_name}.sharded"
         output_irpa = output_base.with_suffix(".irpa")
 
-        # Run sharding script
-        subprocess.run(
-            [
-                "python",
-                "-m",
-                "sharktank.examples.sharding.shard_llm_dataset",
-                f"--{weights_path.suffix.strip('.')}-file={weights_path}",
-                f"--output-irpa={output_irpa}",
-                f"--tensor-parallelism-size={self.config.tensor_parallelism_size}",
-            ],
-            check=True,
-        )
+        # Build sharding command
+        shard_cmd = [
+            "python",
+            "-m",
+            "sharktank.examples.sharding.shard_llm_dataset",
+            f"--{weights_path.suffix.strip('.')}-file={weights_path}",
+            f"--output-irpa={output_irpa}",
+            f"--tensor-parallelism-size={self.config.tensor_parallelism_size}",
+        ]
+
+        logger.info(f"Running sharding command: {' '.join(shard_cmd)}")
+
+        try:
+            result = subprocess.run(
+                shard_cmd, check=True, capture_output=True, text=True
+            )
+            logger.info(f"Sharding succeeded: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Sharding failed with code {e.returncode}")
+            logger.error(f"STDOUT: {e.stdout}")
+            logger.error(f"STDERR: {e.stderr}")
+            raise
 
         # Collect paths to all shards
         shard_paths = [
@@ -351,31 +370,58 @@ class ModelStageManager:
         mlir_path = self.model_dir / "model.mlir"
         config_path = self.model_dir / "config.json"
 
+        # Determine device type from compile flags
+        device_type = "cpu"  # Default to CPU
+        compile_flags = self.config.device_settings.compile_flags
+        for flag in compile_flags:
+            if "hip" in flag.lower():
+                device_type = "cuda"  # Use "cuda" for hip device
+                break
+
         logger.info(
             "Exporting model with following settings:\n"
             f"  MLIR Path: {mlir_path}\n"
             f"  Config Path: {config_path}\n"
-            f"  Batch Sizes: {bs_string}"
+            f"  Batch Sizes: {bs_string}\n"
+            f"  Device Type: {device_type}"
         )
 
         # For sharded models, we use the unranked irpa file
         if self.config.tensor_parallelism_size:
             weights_path = weights_path.with_suffix(".irpa")
 
-        subprocess.run(
-            [
-                "python",
-                "-m",
-                "sharktank.examples.export_paged_llm_v1",
-                "--block-seq-stride=16",
-                f"--{weights_path.suffix.strip('.')}-file={weights_path}",
-                f"--output-mlir={mlir_path}",
-                f"--output-config={config_path}",
-                f"--bs-prefill={bs_string}",
-                f"--bs-decode={bs_string}",
-            ],
-            check=True,
-        )
+        # Build command
+        export_cmd = [
+            "python",
+            "-m",
+            "sharktank.examples.export_paged_llm_v1",
+            "--block-seq-stride=16",
+            f"--{weights_path.suffix.strip('.')}-file={weights_path}",
+            f"--output-mlir={mlir_path}",
+            f"--output-config={config_path}",
+            f"--bs-prefill={bs_string}",
+            f"--bs-decode={bs_string}",
+        ]
+
+        # Add device and tensor parallelism options
+        export_cmd.append(f"--device={device_type}")
+        if self.config.tensor_parallelism_size:
+            export_cmd.append(
+                f"--tensor-parallelism-size={self.config.tensor_parallelism_size}"
+            )
+
+        logger.info(f"Running export command: {' '.join(export_cmd)}")
+
+        try:
+            result = subprocess.run(
+                export_cmd, check=True, capture_output=True, text=True
+            )
+            logger.info(f"Export succeeded: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Export failed with code {e.returncode}")
+            logger.error(f"STDOUT: {e.stdout}")
+            logger.error(f"STDERR: {e.stderr}")
+            raise
 
         logger.info(f"Model successfully exported to {mlir_path}")
         return mlir_path, config_path
@@ -394,7 +440,19 @@ class ModelStageManager:
 
         compile_command.extend(self.config.device_settings.compile_flags)
 
-        subprocess.run(compile_command, check=True)
+        # Add debug output to see what's happening
+        logger.info(f"Running compiler command: {' '.join(compile_command)}")
+        try:
+            result = subprocess.run(
+                compile_command, check=True, capture_output=True, text=True
+            )
+            logger.info(f"Compilation succeeded: {result.stdout}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Compilation failed with code {e.returncode}")
+            logger.error(f"STDOUT: {e.stdout}")
+            logger.error(f"STDERR: {e.stderr}")
+            raise
+
         logger.info(f"Model successfully compiled to {vmfb_path}")
         return vmfb_path
 
