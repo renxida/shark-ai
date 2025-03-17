@@ -266,38 +266,23 @@ if (SHORTFIN_ENABLE_TRACING)
       endif()
     endif()
 
-    set(IREE_TRACY_ENABLE_PYTHON ON CACHE BOOL "Enable Tracy Python bindings")
-
     # Configure Tracy as a shared library (required for Python bindings)
     set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a shared library")
 
     # Let Tracy fetch its own pybind11 (easier than trying to configure system pybind11)
     set(EXTERNAL_PYBIND11 ON CACHE BOOL "Let Tracy download pybind11")
 
+    # Make sure Tracy builds Python bindings
+    set(TRACY_CLIENT_PYTHON ON CACHE BOOL "Build Tracy client python bindings" FORCE)
+
+    # Tell Tracy where to copy the Python bindings
+    # This leverages Tracy's own CMakeLists.txt copy logic instead of our custom copy
+    set(TRACY_CLIENT_PYTHON_TARGET "${CMAKE_BINARY_DIR}/python/tracy_client"
+        CACHE STRING "Directory to copy tracy_client Python module to" FORCE)
 
     # When using shared libraries, enable delayed initialization to prevent issues
     # with static initialization order
     set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for Tracy")
-
-    # Add path to tracy Python bindings for easy access in Python code
-    set(SHORTFIN_TRACY_PYTHON_PATH "${CMAKE_BINARY_DIR}/shortfin_iree/third_party/tracy/python/tracy_client"
-        CACHE PATH "Path to Tracy Python bindings")
-
-    # Define the copy_tracy_python_bindings target but make it run
-    # after the entire IREE build is complete to ensure the tracy_client directory exists
-    add_custom_target(copy_tracy_python_bindings ALL
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/python/tracy_client"
-      COMMAND ${CMAKE_COMMAND} -E echo "Checking for Tracy Python bindings..." &&
-              if [ -d "${CMAKE_BINARY_DIR}/_deps/shortfin_iree-build/third_party/tracy/python/tracy_client" ]; then
-                ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_BINARY_DIR}/_deps/shortfin_iree-build/third_party/tracy/python/tracy_client"
-                "${CMAKE_BINARY_DIR}/python/tracy_client";
-              else
-                ${CMAKE_COMMAND} -E echo "Warning: Tracy Python bindings directory not found - they may not be built yet";
-              fi
-      DEPENDS TracyClient
-      COMMENT "Copying Tracy Python bindings to python directory"
-    )
   endif()
 endif()
 
