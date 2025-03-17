@@ -372,16 +372,15 @@ endif()
 add_subdirectory(src)
 
 if(SHORTFIN_BUILD_PYTHON_BINDINGS)
-  # Python already detected at the top of the file
   add_subdirectory(python)
   set(SHORTFIN_PYTHON_CPP_PREBUILT "TRUE") # See setup.py.
   configure_file(setup.py setup.py @ONLY)
   configure_file(pyproject.toml pyproject.toml COPYONLY)
 
-  # Ensure Tracy Python bindings are built when both tracing and Tracy Python bindings are enabled
+  # If tracy python bindings are enabled, we need to depend on target TracyClientBindings
+  # or the bindings will be configured but not built.
   if(SHORTFIN_ENABLE_TRACING AND SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
     if(TARGET TracyClientBindings)
-      # If we don't explicitly add this dependency, the target will be configured but not built.
       add_dependencies(shortfin_python_extension TracyClientBindings)
       message(STATUS "Added dependency on TracyClientBindings for shortfin_python_extension")
     else()
