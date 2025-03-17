@@ -59,6 +59,11 @@ option(SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS "Enable tracy client python 
 option(SHORTFIN_ENABLE_LTO "Enables LTO if supported" ON)
 option(SHORTFIN_ENABLE_TOKENIZERS "Enables integration of native tokenizers library" OFF)
 
+# Early Python detection to be used throughout the build
+if(SHORTFIN_BUILD_PYTHON_BINDINGS OR SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
+  find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+endif()
+
 set(SHORTFIN_IREE_SOURCE_DIR "" CACHE FILEPATH "Path to IREE source")
 
 # Options for building static or dynamic libraries.
@@ -229,60 +234,26 @@ if (SHORTFIN_ENABLE_TRACING)
   # When using shared libraries there are some issues that need to be
   # explored more on static initialization order. Something is getting
   # initialized and is emitting tracy events before tracy objects are
-  # initialized. This can point to some shared library overloading allocation
-  # functions and making them emit tracy events, which are further used in
-  # some static allocation. See https://github.com/wolfpld/tracy/issues/196
+  # initialized. See https://github.com/wolfpld/tracy/issues/196
   # for a similar issue and discussion. Using the workaround suggested in
-  # that issue for now. Note that this does not happen when using static
-  # libraries.
+  # that issue for now.
   set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for tracy")
+
   if (SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
+    message(STATUS "Configuring Tracy Python bindings")
+
+    # Python bindings require Tracy to be built as a shared library
     set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a static library" FORCE)
+
+    # Enable Tracy Python bindings
     set(TRACY_CLIENT_PYTHON ON CACHE BOOL "Build Tracy Python bindings" FORCE)
 
-    # Find Python with the required components
-    find_package(Python 3.8 COMPONENTS Interpreter Development.Module)
-    if(NOT Python_FOUND)
-      message(WARNING "Python not found, Tracy Python bindings may not build correctly")
-    endif()
-
-    # Make sure pybind11 is available for Tracy
-    if(Python_FOUND)
-      # Get the site-packages directory where pybind11 is installed
-      execute_process(
-        COMMAND ${Python_EXECUTABLE} -c "import site, os; print(os.path.join(site.getsitepackages()[0], 'pybind11', 'share', 'cmake', 'pybind11'))"
-        OUTPUT_VARIABLE PYBIND11_CMAKE_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-      )
-
-      if(EXISTS "${PYBIND11_CMAKE_DIR}")
-        message(STATUS "Found pybind11 in Python site-packages at ${PYBIND11_CMAKE_DIR}")
-        # Set the pybind11_DIR variable to point to the directory containing pybind11Config.cmake
-        set(pybind11_DIR "${PYBIND11_CMAKE_DIR}" CACHE PATH "Path to pybind11Config.cmake" FORCE)
-        # Add to CMAKE_PREFIX_PATH so that find_package can locate it
-        list(APPEND CMAKE_PREFIX_PATH "${PYBIND11_CMAKE_DIR}")
-      else()
-        message(WARNING "pybind11 not found in Python site-packages, Tracy bindings may not build correctly")
-      endif()
-    endif()
-
-    # Configure Tracy as a shared library (required for Python bindings)
-    set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a shared library")
-
-    # Let Tracy fetch its own pybind11 (easier than trying to configure system pybind11)
-    set(EXTERNAL_PYBIND11 ON CACHE BOOL "Let Tracy download pybind11")
-
-    # Make sure Tracy builds Python bindings
-    set(TRACY_CLIENT_PYTHON ON CACHE BOOL "Build Tracy client python bindings" FORCE)
+    # Let Tracy fetch its own pybind11 instead of using system-installed version
+    set(EXTERNAL_PYBIND11 ON CACHE BOOL "Let Tracy download pybind11" FORCE)
 
     # Tell Tracy where to copy the Python bindings
-    # This leverages Tracy's own CMakeLists.txt copy logic instead of our custom copy
     set(TRACY_CLIENT_PYTHON_TARGET "${CMAKE_BINARY_DIR}/python/tracy_client"
         CACHE STRING "Directory to copy tracy_client Python module to" FORCE)
-
-    # When using shared libraries, enable delayed initialization to prevent issues
-    # with static initialization order
-    set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for Tracy")
   endif()
 endif()
 
@@ -398,7 +369,7 @@ endif()
 add_subdirectory(src)
 
 if(SHORTFIN_BUILD_PYTHON_BINDINGS)
-  find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+  # Python already detected at the top of the file
   add_subdirectory(python)
   set(SHORTFIN_PYTHON_CPP_PREBUILT "TRUE") # See setup.py.
   configure_file(setup.py setup.py @ONLY)
