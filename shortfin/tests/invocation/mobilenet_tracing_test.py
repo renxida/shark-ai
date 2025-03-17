@@ -10,6 +10,7 @@ This test verifies that the tracy profiling functionality works correctly
 by running a MobileNet model and generating a tracy capture file.
 """
 
+import array
 import logging
 import os
 import pytest
@@ -18,6 +19,9 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+import shortfin as sf
+import shortfin.array as sfnp
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,84 @@ def is_tracing_enabled():
         # Only logged at debug level since we'll have a warning later
         logger.debug("_shortfin_tracy module not found")
         return False
+
+
+def run_mobilenet(model_path):
+    """Run MobileNet model with tracing enabled.
+
+    Args:
+        model_path: Path to the compiled VMFB file
+    """
+    logging.basicConfig(level=logging.INFO)
+    logger.info(f"Running MobileNet model from {model_path}")
+
+    # Create system and fiber with CPU backend
+    sc = sf.host.CPUSystemBuilder()
+    system = sc.create_system()
+    fiber = system.create_fiber()
+    device = fiber.device(0)
+
+    # Load model
+    program_module = system.load_module(model_path)
+    program = sf.Program([program_module], devices=system.devices)
+    main_function = program["module.torch-jit-export"]
+
+    # Create input tensor
+    dummy_data = array.array(
+        "f", ([0.2] * (224 * 224)) + ([0.4] * (224 * 224)) + ([-0.2] * (224 * 224))
+    )
+    device_input = sfnp.device_array(device, [1, 3, 224, 224], sfnp.float32)
+    staging_input = device_input.for_transfer()
+    with staging_input.map(discard=True) as m:
+        m.fill(dummy_data)
+    device_input.copy_from(staging_input)
+
+    # Run model
+    async def run_model():
+        logger.info("Running MobileNet inference")
+        (device_output,) = await main_function(device_input, fiber=fiber)
+        # Transfer output back to host
+        host_output = device_output.for_transfer()
+        host_output.copy_from(device_output)
+        await device
+        # Clean up
+        del device_output
+        del host_output
+        logger.info("MobileNet inference completed")
+
+    system.run(run_model())
+
+    # Clean up
+    system.shutdown()
+    logger.info("MobileNet model execution finished")
+
+
+def run_mobilenet_subprocess(model_path):
+    """Execute MobileNet model with tracy profiling in a subprocess.
+
+    Args:
+        model_path: Path to the compiled VMFB file
+
+    Returns:
+        subprocess.CompletedProcess object with the result of the subprocess execution
+    """
+    # Run this same file in a subprocess with tracing enabled
+    env = os.environ.copy()
+    env["SHORTFIN_PY_RUNTIME"] = "tracy"
+    env["TRACY_ENABLE"] = "1"
+
+    logger.info(f"Launching subprocess to run MobileNet model")
+
+    # Use this same file as the runner script, but pass a special flag to indicate
+    # we want to run the model directly rather than run the test
+    return subprocess.run(
+        [sys.executable, __file__, str(model_path), "--run-mobilenet-as-subprocess"],
+        env=env,
+        check=False,  # Don't fail on error
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
 
 
 tracing_not_enabled = not is_tracing_enabled()
@@ -100,35 +182,17 @@ def test_tracing_mobilenet(mobilenet_compiled_path, tmp_path):
         # Step 2: Run MobileNet model with tracing enabled via subprocess
         logger.info("Running MobileNet model with tracing enabled via subprocess")
 
-        # Use the dedicated runner script in the same directory
-        runner_script = Path(__file__).parent / "mobilenet_runner_for_tracing.py"
+        result = run_mobilenet_subprocess(mobilenet_compiled_path)
 
-        # Run the script in a subprocess with tracing enabled
-        env = os.environ.copy()
-        env["SHORTFIN_PY_RUNTIME"] = "tracy"
-        env["TRACY_ENABLE"] = "1"
+        # Log the output from the subprocess
+        logger.info(f"Subprocess output:\n{result.stdout}")
 
-        logger.info(f"Launching subprocess to run MobileNet model")
-        try:
-            result = subprocess.run(
-                [sys.executable, str(runner_script), str(mobilenet_compiled_path)],
-                env=env,
-                check=False,  # Don't fail on error
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
+        # Manually check if it was successful
+        if result.returncode != 0:
+            logger.error(f"Subprocess failed with exit code {result.returncode}")
+            logger.error(f"Command: {' '.join(result.args)}")
+            logger.error(f"Output: {result.stdout}")
 
-            # Log the output from the subprocess
-            logger.info(f"Subprocess output:\n{result.stdout}")
-
-            # Manually check if it was successful
-            if result.returncode != 0:
-                logger.error(f"Subprocess failed with exit code {result.returncode}")
-                logger.error(f"Command: {' '.join(result.args)}")
-                logger.error(f"Output: {result.stdout}")
-        except Exception as e:
-            logger.error(f"Error running subprocess: {e}")
     finally:
         # shut down tracy
         logger.info("Waiting for tracy to finish collecting data...")
@@ -154,3 +218,11 @@ def test_tracing_mobilenet(mobilenet_compiled_path, tmp_path):
     )
     if capture_file.exists():
         logger.info(f"Tracy capture file size: {capture_file.stat().st_size} bytes")
+
+
+if __name__ == "__main__":
+    # Check if we're being run directly to execute the model (from the subprocess)
+    if len(sys.argv) >= 3 and sys.argv[2] == "--run-mobilenet-as-subprocess":
+        model_path = sys.argv[1]
+        run_mobilenet(model_path)
+        sys.exit(0)
