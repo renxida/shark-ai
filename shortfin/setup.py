@@ -314,8 +314,8 @@ class CMakeBuildPy(_build_py):
 
         cmake_args = ["-DSHORTFIN_ENABLE_TRACING=ON"]
 
-        # Only enable tracy python bindings if the env var is set
-        if get_env_boolean("SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS", False):
+        # Include Tracy Python bindings if enabled via environment variable
+        if ENABLE_TRACY_PYTHON:
             print("  * Including Tracy Python bindings *")
             cmake_args.append("-DSHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS=ON")
 
