@@ -6,7 +6,7 @@
 
 """Runner script to execute MobileNet model with tracy profiling.
 
-This script is called as a subprocess from trace_mobilenet_test.py to ensure
+This script is called as a subprocess from mobilenet_tracing_test.py to ensure
 that the tracy profiling captures the execution in a separate process.
 """
 
