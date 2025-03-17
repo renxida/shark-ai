@@ -222,6 +222,7 @@ def configure_mode(env_info: EnvInfo, args):
     print(env_info)
     env_info.check_prereqs(args)
 
+    # environmental variables to pass to setup.py
     env_vars = {
         "SHORTFIN_DEV_MODE": "ON",
         "SHORTFIN_CMAKE_BUILD_TYPE": args.build_type,
@@ -234,13 +235,11 @@ def configure_mode(env_info: EnvInfo, args):
         env_vars["CC"] = env_info.clang_exe
         env_vars["CXX"] = f"{env_info.clang_exe}++"
         env_vars["CMAKE_LINKER_TYPE"] = "LLD"
-    # Handle tracing and Tracy Python bindings
     if args.no_tracing and args.tracy_python_bindings:
         print(
             "ERROR: --tracy-python-bindings requires tracing to be enabled (can't use with --no-tracing)"
         )
         sys.exit(1)
-
     env_vars["SHORTFIN_ENABLE_TRACING"] = "OFF" if args.no_tracing else "ON"
     env_vars["SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS"] = (
         "ON" if args.tracy_python_bindings else "OFF"
