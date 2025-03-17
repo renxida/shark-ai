@@ -55,6 +55,7 @@ option(SHORTFIN_BUILD_PYTHON_BINDINGS "Builds Python Bindings" OFF)
 option(SHORTFIN_BUILD_TESTS "Builds C++ tests" ON)
 option(SHORTFIN_BUNDLE_DEPS "Download dependencies instead of using system libraries" ON)
 option(SHORTFIN_ENABLE_TRACING "Enable runtime tracing for iree and shortfin" OFF)
+option(SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS "Enable tracy client python bindings for co-instrumenting shortfin python apps with iree runtime" OFF)
 option(SHORTFIN_ENABLE_LTO "Enables LTO if supported" ON)
 option(SHORTFIN_ENABLE_TOKENIZERS "Enables integration of native tokenizers library" OFF)
 
@@ -235,6 +236,69 @@ if (SHORTFIN_ENABLE_TRACING)
   # that issue for now. Note that this does not happen when using static
   # libraries.
   set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for tracy")
+  if (SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
+    set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a static library" FORCE)
+    set(TRACY_CLIENT_PYTHON ON CACHE BOOL "Build Tracy Python bindings" FORCE)
+
+    # Find Python with the required components
+    find_package(Python 3.8 COMPONENTS Interpreter Development.Module)
+    if(NOT Python_FOUND)
+      message(WARNING "Python not found, Tracy Python bindings may not build correctly")
+    endif()
+
+    # Make sure pybind11 is available for Tracy
+    if(Python_FOUND)
+      # Get the site-packages directory where pybind11 is installed
+      execute_process(
+        COMMAND ${Python_EXECUTABLE} -c "import site, os; print(os.path.join(site.getsitepackages()[0], 'pybind11', 'share', 'cmake', 'pybind11'))"
+        OUTPUT_VARIABLE PYBIND11_CMAKE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+
+      if(EXISTS "${PYBIND11_CMAKE_DIR}")
+        message(STATUS "Found pybind11 in Python site-packages at ${PYBIND11_CMAKE_DIR}")
+        # Set the pybind11_DIR variable to point to the directory containing pybind11Config.cmake
+        set(pybind11_DIR "${PYBIND11_CMAKE_DIR}" CACHE PATH "Path to pybind11Config.cmake" FORCE)
+        # Add to CMAKE_PREFIX_PATH so that find_package can locate it
+        list(APPEND CMAKE_PREFIX_PATH "${PYBIND11_CMAKE_DIR}")
+      else()
+        message(WARNING "pybind11 not found in Python site-packages, Tracy bindings may not build correctly")
+      endif()
+    endif()
+
+    set(IREE_TRACY_ENABLE_PYTHON ON CACHE BOOL "Enable Tracy Python bindings")
+
+    # Configure Tracy as a shared library (required for Python bindings)
+    set(TRACY_STATIC OFF CACHE BOOL "Build Tracy as a shared library")
+
+    # Let Tracy fetch its own pybind11 (easier than trying to configure system pybind11)
+    set(EXTERNAL_PYBIND11 ON CACHE BOOL "Let Tracy download pybind11")
+
+
+    # When using shared libraries, enable delayed initialization to prevent issues
+    # with static initialization order
+    set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for Tracy")
+
+    # Add path to tracy Python bindings for easy access in Python code
+    set(SHORTFIN_TRACY_PYTHON_PATH "${CMAKE_BINARY_DIR}/shortfin_iree/third_party/tracy/python/tracy_client"
+        CACHE PATH "Path to Tracy Python bindings")
+
+    # Define the copy_tracy_python_bindings target but make it run
+    # after the entire IREE build is complete to ensure the tracy_client directory exists
+    add_custom_target(copy_tracy_python_bindings ALL
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/python/tracy_client"
+      COMMAND ${CMAKE_COMMAND} -E echo "Checking for Tracy Python bindings..." &&
+              if [ -d "${CMAKE_BINARY_DIR}/_deps/shortfin_iree-build/third_party/tracy/python/tracy_client" ]; then
+                ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_BINARY_DIR}/_deps/shortfin_iree-build/third_party/tracy/python/tracy_client"
+                "${CMAKE_BINARY_DIR}/python/tracy_client";
+              else
+                ${CMAKE_COMMAND} -E echo "Warning: Tracy Python bindings directory not found - they may not be built yet";
+              fi
+      DEPENDS TracyClient
+      COMMENT "Copying Tracy Python bindings to python directory"
+    )
+  endif()
 endif()
 
 # In order to bundle libraries without conflict, we have to tweak settings.

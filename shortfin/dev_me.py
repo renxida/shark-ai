@@ -15,7 +15,7 @@
 #   rm -Rf build  # Start with a fresh build dir
 #   python dev_me.py [--cmake=/path/to/cmake] [--clang=/path/to/clang] \
 #     [--iree=/path/to/iree] [--asan] [--build-type=Debug] \
-#     [--no-tracing]
+#     [--no-tracing] [--tracy-python-bindings]
 #
 # Subsequent build:
 #   ./dev_me.py
@@ -200,6 +200,11 @@ def main(argv: list[str]):
         "--no-tracing", action="store_true", help="Disable IREE tracing build"
     )
     parser.add_argument(
+        "--tracy-python-bindings",
+        action="store_true",
+        help="Enable Tracy client Python bindings to instrument a python application into the same tracy server as IREE does (cannot be used in conjunction with `--no-tracing`; will cause tracy to build as a shared rather than static lib)",
+    )
+    parser.add_argument(
         "--build-type", default="Debug", help="CMake build type (default Debug)"
     )
     args = parser.parse_args(argv)
@@ -229,7 +234,17 @@ def configure_mode(env_info: EnvInfo, args):
         env_vars["CC"] = env_info.clang_exe
         env_vars["CXX"] = f"{env_info.clang_exe}++"
         env_vars["CMAKE_LINKER_TYPE"] = "LLD"
+    # Handle tracing and Tracy Python bindings
+    if args.no_tracing and args.tracy_python_bindings:
+        print(
+            "ERROR: --tracy-python-bindings requires tracing to be enabled (can't use with --no-tracing)"
+        )
+        sys.exit(1)
+
     env_vars["SHORTFIN_ENABLE_TRACING"] = "OFF" if args.no_tracing else "ON"
+    env_vars["SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS"] = (
+        "ON" if args.tracy_python_bindings else "OFF"
+    )
 
     print("Executing setup:")
     setup_args = [
