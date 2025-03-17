@@ -234,9 +234,12 @@ if (SHORTFIN_ENABLE_TRACING)
   # When using shared libraries there are some issues that need to be
   # explored more on static initialization order. Something is getting
   # initialized and is emitting tracy events before tracy objects are
-  # initialized. See https://github.com/wolfpld/tracy/issues/196
+  # initialized. This can point to some shared library overloading allocation
+  # functions and making them emit tracy events, which are further used in
+  # some static allocation. See https://github.com/wolfpld/tracy/issues/196
   # for a similar issue and discussion. Using the workaround suggested in
-  # that issue for now.
+  # that issue for now. Note that this does not happen when using static
+  # libraries.
   set(TRACY_DELAYED_INIT ON CACHE BOOL "Enable delayed init for tracy")
 
   if (SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
