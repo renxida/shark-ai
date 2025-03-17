@@ -403,4 +403,17 @@ if(SHORTFIN_BUILD_PYTHON_BINDINGS)
   set(SHORTFIN_PYTHON_CPP_PREBUILT "TRUE") # See setup.py.
   configure_file(setup.py setup.py @ONLY)
   configure_file(pyproject.toml pyproject.toml COPYONLY)
+
+  # Ensure Tracy Python bindings are built when both tracing and Tracy Python bindings are enabled
+  if(SHORTFIN_ENABLE_TRACING AND SHORTFIN_ENABLE_TRACY_CLIENT_PYTHON_BINDINGS)
+    if(TARGET TracyClientBindings)
+      # If we don't explicitly add this dependency, the target will be configured but not built.
+      add_dependencies(shortfin_python_extension TracyClientBindings)
+      message(STATUS "Added dependency on TracyClientBindings for shortfin_python_extension")
+    else()
+      message(FATAL_ERROR "TracyClientBindings target not found, but Tracy Python bindings were requested.\n"
+                          "This could happen if IREE was not built with Tracy Python bindings support.\n"
+                          "Make sure your IREE build includes the Tracy Python bindings target.")
+    endif()
+  endif()
 endif()
