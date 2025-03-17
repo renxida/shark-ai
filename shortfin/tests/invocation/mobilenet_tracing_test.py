@@ -27,11 +27,39 @@ def is_tracy_capture_available():
     return shutil.which("iree-tracy-capture") is not None
 
 
-tracy_not_available = not is_tracy_capture_available()
+# Check if shortfin was built with tracing enabled
+def is_tracing_enabled():
+    """Check if shortfin was built with tracing enabled."""
+    import importlib
+
+    try:
+        importlib.import_module("_shortfin_tracy")
+        return True
+    except ModuleNotFoundError:
+        # Only logged at debug level since we'll have a warning later
+        logger.debug("_shortfin_tracy module not found")
+        return False
+
+
+tracing_not_enabled = not is_tracing_enabled()
+tracy_capture_not_available = not is_tracy_capture_available()
+if tracy_capture_not_available:
+    logger.warning(
+        "iree-tracy-capture tool is not available in PATH. "
+        "To fix this, build IREE with Tracy support enabled: "
+        "cmake -DIREE_ENABLE_RUNTIME_TRACING=ON -DTRACY_ENABLE=ON"
+    )
+if tracing_not_enabled:
+    logger.warning(
+        "Shortfin was not built with tracing enabled. "
+        "To enable tracing, rebuild shortfin with: "
+        "cmake -DSHORTFIN_ENABLE_TRACING=ON"
+    )
 
 
 @pytest.mark.skipif(
-    tracy_not_available, reason="iree-tracy-capture is not available on this system"
+    tracy_capture_not_available or tracing_not_enabled,
+    reason="iree-tracy-capture is not available or shortfin was not built with tracing enabled",
 )
 def test_tracing_mobilenet(mobilenet_compiled_path, tmp_path):
     """Test that tracing works with a simple MobileNet model.
