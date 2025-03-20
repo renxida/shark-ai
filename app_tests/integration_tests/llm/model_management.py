@@ -319,7 +319,7 @@ class ModelStageManager:
         compile_flags = self.config.device_settings.compile_flags
         for flag in compile_flags:
             if "hip" in flag.lower():
-                device_type = "cuda"  # Use "cuda" for hip device
+                device_type = "hip"  # Use "hip" for AMD GPU device
                 break
 
         logger.info(
@@ -369,21 +369,11 @@ class ModelStageManager:
         bs_string = ",".join(map(str, self.config.batch_sizes))
         mlir_path = self.model_dir / "model.mlir"
         config_path = self.model_dir / "config.json"
-
-        # Determine device type from compile flags
-        device_type = "cpu"  # Default to CPU
-        compile_flags = self.config.device_settings.compile_flags
-        for flag in compile_flags:
-            if "hip" in flag.lower():
-                device_type = "cuda"  # Use "cuda" for hip device
-                break
-
         logger.info(
             "Exporting model with following settings:\n"
             f"  MLIR Path: {mlir_path}\n"
             f"  Config Path: {config_path}\n"
-            f"  Batch Sizes: {bs_string}\n"
-            f"  Device Type: {device_type}"
+            f"  Batch Sizes: {bs_string}"
         )
 
         # For sharded models, we use the unranked irpa file
@@ -403,8 +393,6 @@ class ModelStageManager:
             f"--bs-decode={bs_string}",
         ]
 
-        # Add device and tensor parallelism options
-        export_cmd.append(f"--device={device_type}")
         if self.config.tensor_parallelism_size:
             export_cmd.append(
                 f"--tensor-parallelism-size={self.config.tensor_parallelism_size}"
