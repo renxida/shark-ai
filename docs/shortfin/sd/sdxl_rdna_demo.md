@@ -62,101 +62,142 @@ Above, `rocm-smi` lists two GPUs: a Radeon RX 9070 and a Radeon Pro W7900.
 
 ### Install SHARK AI and Shortfin
 
-First, create and activate a Python Virtual Environment:
+1. Create and activate a Python Virtual Environment:
 
-```shell
-python -m venv venv
-source venv/bin/activate
-```
+    ```shell
+    python -m venv ./.venv
+    source .venv/bin/activate
+    ```
 
-Clone the shark-ai repository and install Shortfin and its dependencies:
+1. Clone the shark-ai repository:
 
-```shell
-git clone https://github.com/nod-ai/shark-ai
-cd shark-ai
-git switch shared/rdna4
-```
+    ```shell
+    git clone https://github.com/nod-ai/shark-ai && cd shark-ai
+    ```
 
-Install pip requirements:
-```shell
-pip install -r requirements-iree-pinned.txt
-pip install -r pytorch-cpu-requirements.txt
-pip install -r requirements.txt
+1. Install dependencies:
 
-cd shortfin
-pip install -e .
-```
+    ```shell
+    pip install -r requirements-iree-pinned.txt
+    pip install -r pytorch-cpu-requirements.txt
+    pip install -r requirements.txt
+    ```
 
-## Start Shortfin and run SDXL
+1. Install Shortfin
 
-Start the Shortfin server with the correct target (`gfx1100` for RDNA3, `gfx1201` for RDNA4).
-You can override the network port used using the `--port <PORT-NUM>` flag.
+    ```shell
+    cd shortfin && pip install --editable .
+    ```
 
-### FP8: RDNA4 only
+### Install SHARK UI
 
-Note that the first run will download all the artifacts necessary (the model code and the weights).
+1. In a new terminal session, clone the shark-ui project
+
+    ```shell
+    cd demo
+    git clone https://github.com/nod-ai/shark-ui.git
+    cd shark-ui
+    ```
+
+1. Checkout the preview branch
+
+    ```shell
+    git checkout feature-connects-text-to-image-api
+    ```
+
+1. Install dependencies
+    1. [Install node/npm](https://nodejs.org/en/download)
+        1. Select highest LTS version (i.e. v22)
+        1. For "using", select `nvm` if available, otherwise select `fnm`
+        1. For "with", select `npm`
+    1. Update `npm`:
+
+        ```shell
+        npm install -g npm@latest
+        ```
+
+    1. Use `npm` to install dependencies
+
+        ```shell
+        npm install
+        ```
+
+1. Set environment variable
+
+    ```shell
+    echo "VITE_TEXT_TO_IMAGE_API_ORIGIN=http://localhost:8000" > .env
+    ```
+
+## Usage
+
+### Start the Shortfin SD Server
+
+1. Go back to the terminal session with Shortfin
+1. Run the command for your target (`gfx1100` for RDNA3, `gfx1201` for RDNA4):
+    * On RDNA4:
+      * for FP8, run:
+
+        ```shell
+        python -m python.shortfin_apps.sd.server --device=amdgpu --target=gfx1201 --build_preference=precompiled \
+          --device_ids 0 --model_config=sdxl_config_fp8_ocp.json
+        ```
+
+      * for Int8, run:
+
+        ```shell
+        python -m python.shortfin_apps.sd.server --device=amdgpu --target=gfx1201 --build_preference=precompiled \
+          --device_ids 0 --model_config=sdxl_config_i8.json
+        ```
+
+    * On RDNA3:
+      * for FP8: not supported
+      * for Int8, run:
+
+        ```shell
+        python -m python.shortfin_apps.sd.server --device=amdgpu --target=gfx1100 --build_preference=precompiled \
+          --device_ids 0 --model_config=sdxl_config_i8.json
+        ```
+
+1. (Optional) Specify a network port by including the `--port <PORT-NUM>` flag.
+1. Wait until you see that the server is running:
+
+    ```console
+    [2025-03-05 21:05:00] Application startup complete.
+    [2025-03-05 21:05:00] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+    ```
+
+NOTE: The first run will download all the necessary artifacts (the model code and the weights).
 This may take a while. The subsequent runs will use the artifacts cached in `~/.cache/shark/genfiles/sdxl`.
 
-```shell
-python -m python.shortfin_apps.sd.server --device=amdgpu --target=gfx1201 --build_preference=precompiled \
-  --device=hip --device_ids 0 --model_config=sdxl_config_fp8_ocp.json
-```
+### Start the SHARK UI Text-To-Image Client
 
-You should see the server running:
+1. Go back to the terminal session that has SHARK UI
+1. Serve the client:
 
-```console
-[2025-03-05 21:05:00] Application startup complete.
-[2025-03-05 21:05:00] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-```
+    ```shell
+    npm run dev
+    ```
 
-Open another terminal and start the client in the interactive mode:
+### Use the Client
 
-```shell
-cd demo
-source venv/bin/activate
-cd shark-ai/shortfin
+1. Visit <http://localhost:5173> in your browser:
 
-python -m python.shortfin_apps.sd.simple_client --interactive
-```
+    ![SHARK UI upon first load](./shark_ui_example_pre_generation.png)
 
-The client will ask you for the input prompt and save the generated image:
+1. Modify the prompts if desired
+1. Select "Generate Image":
 
-```console
-➜  python -m python.shortfin_apps.sd.simple_client --interactive
-Waiting for server.
-Successfully connected to server.
-Enter a prompt:  Shark jumping out of water at sunset. Vaporwave style.
-Sending request with prompt:  ['Shark jumping out of water at sunset. Vaporwave style.']
-Sending request batch # 0
-Saving response as image...
-Saved to gen_imgs/shortfin_sd_output_2025-03-05_21-14-23_0.png
-Responses processed.
-```
+    ![SHARK UI after successful server response](./shark_ui_example_post_generation.png)
 
-While the server will print the total inference time to generate the image:
+1. Go back to the shortfin terminal session to see the total inference time to generate the image:
 
-```console
-[2025-03-05 21:14:08] 127.0.0.1:40956 - "GET /health HTTP/1.1" 200
-[2025-03-05 21:14:23.752] [info] [metrics.py:51] Completed inference process in 4209ms
-[2025-03-05 21:14:23] 127.0.0.1:57240 - "POST /generate HTTP/1.1" 200
-```
+    ```console
+    [2025-03-05 21:14:08] 127.0.0.1:40956 - "GET /health HTTP/1.1" 200
+    [2025-03-05 21:14:23.752] [info] [metrics.py:51] Completed inference process in 4209ms
+    [2025-03-05 21:14:23] 127.0.0.1:57240 - "POST /generate HTTP/1.1" 200
+    ```
 
-![The generated image of a shark](./sample_image_shark.png)
-
-You can exit the server and the client by pressing `Ctrl + C`.
-
-
-### Int8: Both RDNA3 and RDNA4
-
-Use the following command to start the server:
-
-```shell
-python -m python.shortfin_apps.sd.server --device=amdgpu --target=gfx1201 --build_preference=precompiled \
-  --device=hip --device_ids 0 --model_config=sdxl_config_i8.json
-```
-
-Use `--target=gfx1100` when running on RDNA3.
-Open a new terminal and follow the steps from the section above to run the client.
+1. Exit the server and the client by pressing `Ctrl + C` in each terminal session.
 
 ## Preliminary performance results
 
