@@ -90,7 +90,6 @@ def create_tp_settings(base_device: str, tp_count: int) -> DeviceSettings:
     else:
         # GPU tensor parallelism - just use the HAL device targets for multi-device
         compile_flags = [
-            "--iree-hal-target-backends=rocm",
             f"--iree-hip-target={base_device}",
         ]
         for i in range(tp_count):
