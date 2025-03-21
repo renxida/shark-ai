@@ -68,42 +68,32 @@ def create_tp_settings(base_device: str, tp_count: int) -> DeviceSettings:
     Returns:
         DeviceSettings with appropriate flags for tensor parallelism
     """
-    # Get base device settings
+    # base_device: llvm-cpu or hip
     if base_device in ["cpu", "host", "hostcpu", "local-task"]:
-        # CPU tensor parallelism - just use the HAL device targets for multi-device
-        compile_flags = [
-            "--iree-hal-target-backends=llvm-cpu",
-            "--iree-llvmcpu-target-cpu=host",
-        ]
-        for i in range(tp_count):
-            compile_flags.append(f"--iree-hal-target-device=local-task[{i}]")
-
-        server_flags = ["--device=local-task", "--device_ids"]
-        for i in range(tp_count):
-            server_flags.append(f"{i}")
-
-        return DeviceSettings(
-            name=f"cpu_tp{tp_count}",
-            compile_flags=tuple(compile_flags),
-            server_flags=tuple(server_flags),
-        )
+        device_kind = "llvm-cpu"
+    elif base_device.startswith("gfx"):
+        device_kind = "hip"
     else:
-        # GPU tensor parallelism - just use the HAL device targets for multi-device
-        compile_flags = [
-            f"--iree-hip-target={base_device}",
-        ]
-        for i in range(tp_count):
-            compile_flags.append(f"--iree-hal-target-device=hip[{i}]")
-
-        server_flags = ["--device=hip", "--device_ids"]
-        for i in range(tp_count):
-            server_flags.append(f"{i}")
-
-        return DeviceSettings(
-            name=f"{base_device}_tp{tp_count}",
-            compile_flags=tuple(compile_flags),
-            server_flags=tuple(server_flags),
+        raise ValueError(
+            f"Device {base_device} not supported. Supported devices: cpu / host / hostcpu / local-task / gfxXXX"
         )
+
+    compile_flags = []
+    server_flags = []
+
+    if base_device.startswith("gfx"):
+        compile_flags.append("--iree-hip-target={base_device}")
+
+    # for sharded
+    compile_flags.extend(
+        [f"--iree-hal-target-device={device_kind}[{i}]" for i in range(tp_count)]
+    )
+
+    return DeviceSettings(
+        name=f"{base_device}_tp{tp_count}",
+        compile_flags=tuple(compile_flags),
+        server_flags=tuple(server_flags),
+    )
 
 
 # Add a few common TP settings to the table for quick access
@@ -163,7 +153,7 @@ def get_device_settings_by_name(device_name):
     )
 
 
-# Comprehensive test function to verify dynamic TP generation
+# Comprehensive test function to verify dynamic TP flag generation
 def _test_tp_generation():
     """Test tensor parallelism settings generation for both CPU and GPU devices."""
 
@@ -198,7 +188,7 @@ def _test_tp_generation():
                 assert f"--iree-hip-target={device}" in settings.compile_flags
             else:
                 assert "--device=local-task" in settings.server_flags
-                assert "--iree-hal-target-backends=llvm-cpu" in settings.compile_flags
+                assert "--iree-hal-target-device=llvm-cpu[0]" in settings.compile_flags
 
     # Verify error for non-existent device
     try:
