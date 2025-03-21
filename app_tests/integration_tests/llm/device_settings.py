@@ -56,51 +56,66 @@ table = {
 }
 
 
-# Helper function to generate tensor parallelism settings
-def create_tp_settings(base_device: str, tp_count: int) -> DeviceSettings:
+def create_tp_settings_cpu(tp_count: int) -> DeviceSettings:
     """
-    Create tensor parallelism settings for a given base device and count.
+    Create tensor parallelism settings for CPU devices.
 
     Args:
-        base_device: Base device name (e.g., "cpu", "gfx942")
         tp_count: Number of devices to use for tensor parallelism
 
     Returns:
-        DeviceSettings with appropriate flags for tensor parallelism
+        DeviceSettings with appropriate flags for CPU tensor parallelism
     """
-    # base_device: llvm-cpu or hip
-    if base_device in ["cpu", "host", "hostcpu", "local-task"]:
-        device_kind = "llvm-cpu"
-    elif base_device.startswith("gfx"):
-        device_kind = "hip"
-    else:
-        raise ValueError(
-            f"Device {base_device} not supported. Supported devices: cpu / host / hostcpu / local-task / gfxXXX"
-        )
 
     compile_flags = []
-    server_flags = []
 
-    if base_device.startswith("gfx"):
-        compile_flags.append("--iree-hip-target={base_device}")
-
-    # for sharded
+    # compile
     compile_flags.extend(
-        [f"--iree-hal-target-device={device_kind}[{i}]" for i in range(tp_count)]
+        [f"--iree-hal-target-device=llvm-cpu[{i}]" for i in range(tp_count)]
     )
 
+    # serve
+    server_flags = [f"--device=local-task"]
+    server_flags.extend(["--device_ids"] + [str(i) for i in range(tp_count)])
+
     return DeviceSettings(
-        name=f"{base_device}_tp{tp_count}",
+        name=f"cpu_tp{tp_count}",
         compile_flags=tuple(compile_flags),
         server_flags=tuple(server_flags),
     )
 
 
-# Add a few common TP settings to the table for quick access
-table["cpu_tp2"] = create_tp_settings("cpu", 2)
-table["cpu_tp4"] = create_tp_settings("cpu", 4)
-table["gfx942_tp2"] = create_tp_settings("gfx942", 2)
-table["gfx942_tp4"] = create_tp_settings("gfx942", 4)
+def create_tp_settings_hip(gfx_level: str, tp_count: int) -> DeviceSettings:
+    """
+    Create tensor parallelism settings for HIP devices.
+
+    Args:
+        gfx_level: GFX level name (e.g., "gfx942")
+        tp_count: Number of devices to use for tensor parallelism
+
+    Returns:
+        DeviceSettings with appropriate flags for HIP tensor parallelism
+    """
+    if not gfx_level.startswith("gfx"):
+        raise ValueError(
+            f"Device {gfx_level} is not a valid HIP device. HIP devices should start with 'gfx'."
+        )
+
+    # compile
+    compile_flags = [f"--iree-hip-target={gfx_level}"]
+    compile_flags.extend(
+        [f"--iree-hal-target-device=hip[{i}]" for i in range(tp_count)]
+    )
+
+    # serve
+    server_flags = [f"--device=hip"]
+    server_flags.extend(["--device_ids"] + [str(i) for i in range(tp_count)])
+
+    return DeviceSettings(
+        name=f"{gfx_level}_tp{tp_count}",
+        compile_flags=tuple(compile_flags),
+        server_flags=tuple(server_flags),
+    )
 
 
 def get_device_settings_by_name(device_name):
@@ -137,7 +152,10 @@ def get_device_settings_by_name(device_name):
             raise ValueError(f"Base device '{base_device}' not recognized")
 
         # Dynamically create tensor parallelism settings
-        tp_settings = create_tp_settings(base_device, tp_count)
+        if base_device.startswith("gfx"):
+            tp_settings = create_tp_settings_hip(base_device, tp_count)
+        elif base_device in ["cpu", "host", "hostcpu", "local-task"]:
+            tp_settings = create_tp_settings_cpu(tp_count)
 
         # Cache the settings for future use
         table[device_name] = tp_settings
@@ -159,8 +177,10 @@ def _test_tp_generation():
 
     # Test cached settings
     for device, size in [("gfx942", 2), ("gfx942", 4), ("cpu", 2), ("cpu", 4)]:
+        print(f"Testing device: {device} size: {size}")
         key = f"{device}_tp{size}"
         settings = get_device_settings_by_name(key)
+        print(f"got settings: {settings}")
         # Verify it has the correct number of device targets
         assert len([f for f in settings.compile_flags if "target-device" in f]) == size
         # Verify it has the correct number of device IDs
