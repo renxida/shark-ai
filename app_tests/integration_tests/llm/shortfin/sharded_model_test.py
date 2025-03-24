@@ -88,7 +88,7 @@ class TestShardedModelServer:
     """Test suite for sharded model server functionality on both CPU and GPU."""
 
     @pytest.mark.xfail(
-        "Memory access fault by GPU node-3 (Agent handle: 0x555c24e83f80) on address 0x7fc28a1e4000. Reason: Unknown."
+        reason="Memory access fault by GPU node-3 (Agent handle: 0x555c24e83f80) on address 0x7fc28a1e4000. Reason: Unknown."
     )
     def test_concurrent_generation_sharded(
         self, server: tuple[Any, int], test_device, device_type
