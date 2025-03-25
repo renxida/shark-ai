@@ -79,7 +79,7 @@ def server(model_artifacts, request, tmp_path_factory):
     process, port = server_instance.process, server_instance.port
 
     # Store the server instance for test access
-    yield process, port, server_instance
+    yield server_instance
 
     # Stop the server
     server_instance.stop()
