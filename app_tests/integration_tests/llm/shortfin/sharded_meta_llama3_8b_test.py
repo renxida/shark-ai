@@ -1,13 +1,11 @@
 """
 Test for sharded Meta LLaMa 3.1 8B model with tensor parallelism.
 
-This test validates tensor parallelism with a production-grade model (Meta LLaMa 3.1 8B).
-It's an extension of the basic sharded model test but uses a larger, more complex model
-to validate that the tensor parallelism implementation scales correctly to real-world models.
+This test validates tensor parallelism with a model large enough to exercise
+sharding. Note: This test uses LLaMa 3.1 8B as a workaround for
+the TinyStories 25M model failing with  `Memory access fault by GPU node-3 (Agent handle: 0x555c24e83f80) on address 0x7fc28a1e4000. Reason: Unknown`
 
-The test can run on either CPU or GPU infrastructure and tests both single requests
-and concurrent workloads to validate the server's ability to handle parallel processing
-with a sharded LLaMa 3.1 8B model.
+The test should run on either CPU or GPU.
 """
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -19,89 +17,18 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-from ..model_management import (
-    AccuracyValidationException,
-    ModelConfig,
-    ModelSource,
-    ModelProcessor,
-)
-import os
-import pytest
-from ..device_settings import get_device_settings_by_name
+from ..model_management import AccuracyValidationException
 
-# Define tensor parallelism parameter that can be easily changed in a single place
 TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
-
-# Create a base model for testing - using create_shardable_model to apply tensor parallelism
-from ..model_management import create_shardable_model
-
-# Register a custom model config for this test
 MODEL_NAME = "llama3.1_8b_tp2"
 
-# Customize test parameters
-BASE_MODEL = "llama3.1_8b"  # Use the predefined LLaMa 3.1 8B model
 
-# Determine device type based on pytest test_device fixture
-def is_gpu_device(device_name):
-    """Determine if the device is a GPU based on name"""
-    device_name = device_name.lower()
-    return "gfx" in device_name or "hip" in device_name or "gpu" in device_name
-
-
-# Add a fixture to determine device type
 @pytest.fixture(scope="function")
 def device_type(test_device):
     """Determine if we're running on CPU or GPU based on test_device"""
-    return "gpu" if is_gpu_device(test_device) else "cpu"
+    return "gpu" if "gfx" in test_device else "cpu"
 
 
-# Check for sufficient compute resources for parallel testing
-import multiprocessing
-
-
-def check_available_resources(device_type):
-    """Check available compute resources based on device type"""
-    if device_type == "cpu":
-        try:
-            # Get logical CPU count using multiprocessing
-            cpu_count = multiprocessing.cpu_count()
-            return cpu_count, "CPU cores"
-        except Exception as e:
-            logger.warning(f"Failed to check CPU count: {e}")
-            return 4, "CPU cores"  # Assume 4 CPU cores if check fails
-    else:
-        # Check GPU devices - in a real environment, we would query actual GPU count
-        # For now, we'll assume 4 GPUs if using GPU device type
-        return 4, "GPU devices"  # Default assumption for testing
-
-
-# Initialize the custom model configuration before tests run
-@pytest.fixture(scope="module", autouse=True)
-def setup_custom_model():
-    """Setup custom model configuration for LLaMa 3.1 8B with sharding."""
-    from ..model_management import TEST_MODELS
-
-    # Create the shardable model based on the base LLaMa 3.1 8B model
-    TEST_MODELS[MODEL_NAME] = create_shardable_model(
-        model_name=BASE_MODEL,
-        tp_size=TENSOR_PARALLELISM_SIZE,
-        batch_sizes=(1, 2),  # Reduced batch sizes for larger model
-    )
-
-    # Log the model configuration
-    logger.info(
-        f"Registered custom model {MODEL_NAME} with tensor parallelism size {TENSOR_PARALLELISM_SIZE}"
-    )
-
-    yield
-
-    # Cleanup (optional)
-    if MODEL_NAME in TEST_MODELS:
-        del TEST_MODELS[MODEL_NAME]
-
-
-# Setup the model configuration for tests
-# Note: The actual device settings are automatically applied by the model_artifacts fixture
 pytestmark = pytest.mark.parametrize(
     "model_artifacts,server",
     [
@@ -118,17 +45,12 @@ EXPECTED_PATTERN = (
 
 
 class TestShardedLlama31Server:
-    """Test suite for sharded LLaMa 3.1 8B model server functionality on both CPU and GPU."""
+    """Tests sharded model server functionality on both CPU and GPU devices."""
 
-    def test_non_concurrent_request_sharded(
-        self, server: tuple[Any, int], test_device, device_type
-    ) -> None:
-        """Tests single request generation with a sharded LLaMa 3.1 8B model.
+    def test_sharded(self, server: tuple[Any, int], test_device, device_type) -> None:
+        """Tests single request generation with a sharded model.
 
-        Sends a single request to test the server's ability to handle
-        a basic request with the sharded LLaMa 3.1 8B model using tensor parallelism.
-        This test validates that a production-grade model can be correctly sharded
-        and served for inference.
+        Validates basic sharding functionality with a single request.
 
         Args:
             server: Tuple of (process, port) from server fixture
@@ -137,15 +59,6 @@ class TestShardedLlama31Server:
         """
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
-
-        available_resources, resource_type = check_available_resources(device_type)
-        minimum_resources_needed = TENSOR_PARALLELISM_SIZE
-        if available_resources < minimum_resources_needed:
-            logger.warning(
-                f"Available {resource_type} ({available_resources}) may be insufficient "
-                f"for tensor parallelism size {TENSOR_PARALLELISM_SIZE}. "
-                f"Recommended minimum: {minimum_resources_needed} {resource_type}."
-            )
 
         logger.info(
             f"Testing with {test_device} (type: {device_type}), tensor parallelism: {TENSOR_PARALLELISM_SIZE}, "
@@ -156,7 +69,7 @@ class TestShardedLlama31Server:
         response = self._generate(PROMPT, port)
         if EXPECTED_PATTERN not in response:
             raise AccuracyValidationException(
-                expected=f"...{EXPECTED_PATTERN}...",
+                expected=f"Response containing '{EXPECTED_PATTERN}'",
                 actual=response,
                 message=f"Generation did not contain expected pattern.\nExpected to contain: {EXPECTED_PATTERN}\nActual response: {response}",
             )
@@ -164,12 +77,10 @@ class TestShardedLlama31Server:
     def test_concurrent_generation_sharded(
         self, server: tuple[Any, int], test_device, device_type
     ) -> None:
-        """Tests concurrent text generation with a sharded LLaMa 3.1 8B model.
+        """Tests concurrent text generation with a sharded model.
 
-        Uses multiple concurrent requests to test the server's ability to handle
-        parallel workloads with the sharded LLaMa 3.1 8B model using tensor parallelism.
-        This tests the production readiness of the tensor parallelism implementation
-        with a larger, more complex model under concurrent load.
+        Validates that the server can handle multiple simultaneous requests
+        with tensor parallelism enabled.
 
         Args:
             server: Tuple of (process, port) from server fixture
@@ -178,15 +89,6 @@ class TestShardedLlama31Server:
         """
         process, port = server
         assert process.poll() is None, "Server process terminated unexpectedly"
-
-        available_resources, resource_type = check_available_resources(device_type)
-        minimum_resources_needed = TENSOR_PARALLELISM_SIZE
-        if available_resources < minimum_resources_needed:
-            logger.warning(
-                f"Available {resource_type} ({available_resources}) may be insufficient "
-                f"for tensor parallelism size {TENSOR_PARALLELISM_SIZE}. "
-                f"Recommended minimum: {minimum_resources_needed} {resource_type}."
-            )
 
         concurrent_requests = 3
 
@@ -205,13 +107,13 @@ class TestShardedLlama31Server:
                 response = future.result()
                 if EXPECTED_PATTERN not in response:
                     raise AccuracyValidationException(
-                        expected=f"...{EXPECTED_PATTERN}...",
+                        expected=f"Response containing '{EXPECTED_PATTERN}'",
                         actual=response,
                         message=f"Generation did not contain expected pattern.\nExpected to contain: {EXPECTED_PATTERN}\nActual response: {response}",
                     )
 
     def _generate(self, prompt: str, port: int) -> str:
-        """Helper method to make generation request to server.
+        """Make generation request to server.
 
         Args:
             prompt: Input text prompt
