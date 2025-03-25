@@ -552,19 +552,81 @@ TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
     device_settings=None,
 )
 
-# Base function to create TinyStories models with configurable tensor parallelism
-def create_tinystories_model(tp_size=None, batch_sizes=(1, 4)):
-    """Create a TinyStories model config with configurable tensor parallelism."""
+# Create a model with configurable tensor parallelism
+def create_shardable_model(
+    model_name,
+    tp_size=None,
+    batch_sizes=(1, 4),
+    source=None,
+    repo_id=None,
+    dataset_name=None,
+    model_file=None,
+    tokenizer_id=None,
+    local_path=None,
+    azure_config=None,
+):
+    """Create a model config with configurable tensor parallelism.
+
+    Args:
+        model_name: Name of a predefined model in TEST_MODELS, or None if providing custom params
+        tp_size: Number of shards for tensor parallelism
+        batch_sizes: Tuple of batch sizes to support
+        source: Model source type, required if model_name is None
+        repo_id: HuggingFace repo ID for GGUF models
+        dataset_name: Dataset name for safetensors models
+        model_file: Name of the model file
+        tokenizer_id: Tokenizer ID
+        local_path: Path to local model file
+        azure_config: Azure configuration for Azure models
+
+    Returns:
+        ModelConfig: Configured model with tensor parallelism
+    """
+    if model_name and model_name in TEST_MODELS:
+        # Copy the existing model config
+        base_config = TEST_MODELS[model_name]
+        # Create a new config with the same parameters but updated tp_size and batch_sizes
+        return ModelConfig(
+            source=base_config.source,
+            repo_id=base_config.repo_id,
+            dataset_name=base_config.dataset_name,
+            model_file=base_config.model_file,
+            tokenizer_id=base_config.tokenizer_id,
+            batch_sizes=batch_sizes,
+            device_settings=base_config.device_settings,
+            local_path=base_config.local_path,
+            azure_config=base_config.azure_config,
+            tensor_parallelism_size=tp_size,
+        )
+
+    # Create a new config from scratch
     return ModelConfig(
-        source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
-        dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-        model_file="model.irpa",  # This will be the final converted file name
-        tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        source=source,
+        repo_id=repo_id,
+        dataset_name=dataset_name,
+        model_file=model_file,
+        tokenizer_id=tokenizer_id,
         batch_sizes=batch_sizes,
         device_settings=None,
+        local_path=local_path,
+        azure_config=azure_config,
         tensor_parallelism_size=tp_size,
     )
 
+
+# Base function to create TinyStories models with configurable tensor parallelism
+def create_tinystories_model(tp_size=None, batch_sizes=(1, 4)):
+    """Create a TinyStories model config with configurable tensor parallelism."""
+    return create_shardable_model(
+        model_name="tinystories_llama2_25m", tp_size=tp_size, batch_sizes=batch_sizes
+    )
+
+
+TEST_MODELS["llama3.1_8b_tp2"] = create_shardable_model(
+    model_name="llama3.1_8b",
+    tp_size=2,
+    batch_sizes=tuple([4]),
+)
 
 # Predefined sharded versions of tinystories for common TP sizes
 # These are convenience configurations that can be referenced directly in tests
@@ -590,3 +652,168 @@ TEST_MODELS["llama3.1_405b"] = ModelConfig(
     device_settings=None,
     tensor_parallelism_size=8,  # Required for 405B model
 )
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    # Configure logging for script mode
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        stream=sys.stdout,
+    )
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description="Process a model and generate artifacts"
+    )
+
+    # Model selection
+    model_group = parser.add_mutually_exclusive_group(required=True)
+    model_group.add_argument(
+        "--model-name", help="Name of a predefined model in TEST_MODELS"
+    )
+    model_group.add_argument(
+        "--gguf-model", help="HuggingFace repo ID for a GGUF model"
+    )
+    model_group.add_argument(
+        "--safetensors-model", help="HuggingFace dataset name for a safetensors model"
+    )
+    model_group.add_argument("--local-model", help="Path to a local model file")
+
+    # Required params when not using a predefined model
+    parser.add_argument(
+        "--model-file", help="Name of the model file (required for custom models)"
+    )
+    parser.add_argument(
+        "--tokenizer-id", help="Tokenizer ID (required for custom models)"
+    )
+
+    # Output directory
+    parser.add_argument(
+        "--output-dir", required=True, help="Directory to store model artifacts"
+    )
+
+    # Optional params
+    parser.add_argument(
+        "--tp-size", type=int, help="Tensor parallelism size (number of shards)"
+    )
+    parser.add_argument(
+        "--batch-sizes", help="Comma-separated list of batch sizes, e.g. '1,4,8'"
+    )
+
+    # Device settings
+    device_group = parser.add_argument_group("Device settings")
+    device_group.add_argument(
+        "--cpu", action="store_true", help="Compile for CPU (default)"
+    )
+    device_group.add_argument("--gpu", action="store_true", help="Compile for GPU")
+
+    args = parser.parse_args()
+
+    # Process batch sizes
+    if args.batch_sizes:
+        batch_sizes = tuple(int(bs) for bs in args.batch_sizes.split(","))
+    else:
+        batch_sizes = (1, 4)  # Default
+
+    # Get device settings
+    if args.gpu:
+        device_settings_name = "gpu"
+    else:
+        device_settings_name = "cpu"
+
+    device_settings_config = getattr(device_settings, device_settings_name)
+
+    # Create model config based on arguments
+    if args.model_name:
+        # Use a predefined model with optional overrides
+        model_config = create_shardable_model(
+            model_name=args.model_name, tp_size=args.tp_size, batch_sizes=batch_sizes
+        )
+    elif args.gguf_model:
+        # Custom GGUF model from HuggingFace
+        if not args.model_file or not args.tokenizer_id:
+            parser.error(
+                "--model-file and --tokenizer-id are required for custom GGUF models"
+            )
+
+        model_config = create_shardable_model(
+            model_name=None,
+            source=ModelSource.HUGGINGFACE_FROM_GGUF,
+            repo_id=args.gguf_model,
+            model_file=args.model_file,
+            tokenizer_id=args.tokenizer_id,
+            tp_size=args.tp_size,
+            batch_sizes=batch_sizes,
+        )
+    elif args.safetensors_model:
+        # Custom safetensors model from HuggingFace
+        if not args.tokenizer_id:
+            parser.error("--tokenizer-id is required for custom safetensors models")
+
+        model_config = create_shardable_model(
+            model_name=None,
+            source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
+            dataset_name=args.safetensors_model,
+            model_file="model.irpa",  # Fixed output name for safetensors -> irpa conversion
+            tokenizer_id=args.tokenizer_id,
+            tp_size=args.tp_size,
+            batch_sizes=batch_sizes,
+        )
+    elif args.local_model:
+        # Local model file
+        if not args.model_file or not args.tokenizer_id:
+            parser.error(
+                "--model-file and --tokenizer-id are required for local models"
+            )
+
+        model_config = create_shardable_model(
+            model_name=None,
+            source=ModelSource.LOCAL,
+            local_path=Path(args.local_model),
+            model_file=args.model_file,
+            tokenizer_id=args.tokenizer_id,
+            tp_size=args.tp_size,
+            batch_sizes=batch_sizes,
+        )
+
+    # Set device settings on the model config
+    model_config.device_settings = device_settings_config
+
+    # Create output directory
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Process the model
+    logger.info(f"Processing model with the following configuration:")
+    logger.info(f"  Model source: {model_config.source}")
+    if model_config.repo_id:
+        logger.info(f"  Repo ID: {model_config.repo_id}")
+    if model_config.dataset_name:
+        logger.info(f"  Dataset name: {model_config.dataset_name}")
+    if model_config.local_path:
+        logger.info(f"  Local path: {model_config.local_path}")
+    logger.info(f"  Model file: {model_config.model_file}")
+    logger.info(f"  Tokenizer ID: {model_config.tokenizer_id}")
+    logger.info(f"  Batch sizes: {model_config.batch_sizes}")
+    logger.info(f"  Tensor parallelism size: {model_config.tensor_parallelism_size}")
+    logger.info(f"  Output directory: {output_dir}")
+
+    # Create processor and process the model
+    processor = ModelProcessor(output_dir)
+    artifacts = processor.process_model(model_config)
+
+    # Print summary of artifacts
+    logger.info("Model processing completed. Artifacts generated:")
+    logger.info(f"  Weights: {artifacts.weights_path}")
+    logger.info(f"  Tokenizer: {artifacts.tokenizer_path}")
+    logger.info(f"  MLIR: {artifacts.mlir_path}")
+    logger.info(f"  VMFB: {artifacts.vmfb_path}")
+    logger.info(f"  Config: {artifacts.config_path}")
+
+    if artifacts.shard_paths:
+        logger.info(f"  Shards ({len(artifacts.shard_paths)}):")
+        for i, shard_path in enumerate(artifacts.shard_paths):
+            logger.info(f"    Shard {i}: {shard_path}")
