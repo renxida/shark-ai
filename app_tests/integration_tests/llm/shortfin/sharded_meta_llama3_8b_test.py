@@ -20,6 +20,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 from ..model_management import AccuracyValidationException
+from ..server_management import ServerInstance
 
 TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
 
@@ -49,19 +50,17 @@ EXPECTED_PATTERN = (
 class TestShardedLlama31Server:
     """Tests sharded model server functionality on both CPU and GPU devices."""
 
-    def test_sharded(
-        self, server: tuple[Any, int, Any], test_device, device_type
-    ) -> None:
+    def test_sharded(self, server: ServerInstance, test_device, device_type) -> None:
         """Tests single request generation with a sharded model.
 
         Validates basic sharding functionality with a single request.
 
         Args:
-            server: Tuple of (process, port, server_instance) from server fixture
+            server: ServerInstance from server fixture
             test_device: The device being tested (from pytest fixture)
             device_type: Simplified device type (cpu/gpu) from fixture
         """
-        process, port, server_instance = server
+        process, port = server.process, server.port
         assert process.poll() is None, "Server process terminated unexpectedly"
 
         logger.info(
@@ -81,11 +80,11 @@ class TestShardedLlama31Server:
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # On connection errors, dump server logs
             logger.error("Connection error or timeout occurred: %s", str(e))
-            server_instance._dump_log_tail(lines=50)
+            server._dump_log_tail(lines=50)
             raise
 
     def test_concurrent_generation_sharded(
-        self, server: tuple[Any, int, Any], test_device, device_type
+        self, server: ServerInstance, test_device, device_type
     ) -> None:
         """Tests concurrent text generation with a sharded model.
 
@@ -97,7 +96,7 @@ class TestShardedLlama31Server:
             test_device: The device being tested (from pytest fixture)
             device_type: Simplified device type (cpu/gpu) from fixture
         """
-        process, port, server_instance = server
+        process, port = server.process, server.port
         assert process.poll() is None, "Server process terminated unexpectedly"
 
         concurrent_requests = 3
@@ -129,12 +128,12 @@ class TestShardedLlama31Server:
                     ) as e:
                         # On connection errors, dump server logs
                         logger.error("Connection error or timeout occurred: %s", str(e))
-                        server_instance._dump_log_tail(lines=50)
+                        server._dump_log_tail(lines=50)
                         raise
         except Exception as e:
             # Catch any other errors and dump logs
             logger.error("Error during concurrent generation: %s", str(e))
-            server_instance._dump_log_tail(lines=50)
+            server._dump_log_tail(lines=50)
             raise
 
     def _generate(self, prompt: str, port: int) -> str:
