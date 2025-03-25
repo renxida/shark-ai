@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 from ..model_management import AccuracyValidationException
 from ..server_management import ServerInstance
 
-TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
 MODEL_NAME = "llama3.1_8b_tp2"
 
 
@@ -64,8 +63,7 @@ class TestShardedLlama31Server:
         assert process.poll() is None, "Server process terminated unexpectedly"
 
         logger.info(
-            f"Testing with {test_device} (type: {device_type}), tensor parallelism: {TENSOR_PARALLELISM_SIZE}, "
-            f"single request"
+            f"Testing with {test_device} (type: {device_type})" f"single request"
         )
 
         try:
@@ -102,7 +100,7 @@ class TestShardedLlama31Server:
         concurrent_requests = 3
 
         logger.info(
-            f"Testing with {test_device} (type: {device_type}), tensor parallelism: {TENSOR_PARALLELISM_SIZE}, "
+            f"Testing with {test_device} (type: {device_type})"
             f"concurrent_requests: {concurrent_requests}"
         )
 
