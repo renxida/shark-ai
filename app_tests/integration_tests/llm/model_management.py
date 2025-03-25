@@ -18,32 +18,23 @@ logger = logging.getLogger(__name__)
 
 def get_llama_cpp_path() -> Path:
     """Downloads and extracts llama.cpp if needed, returns path to installation."""
-    # Use system temp directory as base
     temp_base = Path(tempfile.gettempdir()) / "sharktank_llamacpp"
     llama_cpp_dir = temp_base / "llama.cpp-b4696"
 
-    # Only download and extract if not already present
     if not llama_cpp_dir.exists():
         temp_base.mkdir(parents=True, exist_ok=True)
         zip_path = temp_base / "llama.cpp.zip"
 
-        # Download zip file
         logger.info("Downloading llama.cpp...")
         urllib.request.urlretrieve(
             "https://github.com/ggerganov/llama.cpp/archive/refs/tags/b4696.zip",
             zip_path,
         )
-
-        # Extract zip file
         logger.info("Extracting llama.cpp...")
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(temp_base)
-
-        # Clean up zip file
         zip_path.unlink()
-
         logger.info(f"llama.cpp installed at {llama_cpp_dir}")
-
     return llama_cpp_dir
 
 
@@ -120,13 +111,15 @@ class ModelConfig:
 class ModelArtifacts:
     """Container for all paths related to model artifacts."""
 
-    weights_path: Path  # Main weights file (unranked for sharded models)
+    weights_path: Path  # Main weights file (the .irpa without .rankX for sharded models)
     tokenizer_path: Path
     mlir_path: Path
     vmfb_path: Path
     config_path: Path
     model_config: ModelConfig  # config that was originally used to generate these artifacts
-    shard_paths: Optional[list[Path]] = None  # Paths to sharded weight files (rank0-N)
+    shard_paths: Optional[
+        list[Path]
+    ] = None  # Paths to sharded weight files (model_name.rank\d+.irpa)
 
 
 class ModelStageManager:
@@ -327,12 +320,10 @@ class ModelStageManager:
             f"for device type: {device_type}"
         )
 
-        # Determine output paths
         base_name = weights_path.stem
         output_base = self.model_dir / f"{base_name}.sharded"
         output_irpa = output_base.with_suffix(".irpa")
 
-        # Build sharding command
         shard_cmd = [
             "python",
             "-m",
@@ -355,7 +346,6 @@ class ModelStageManager:
             logger.error(f"STDERR: {e.stderr}")
             raise
 
-        # Collect paths to all shards
         shard_paths = [
             output_base.with_suffix(f".rank{i}.irpa")
             for i in range(self.config.tensor_parallelism_size)
@@ -376,11 +366,9 @@ class ModelStageManager:
             f"  Batch Sizes: {bs_string}"
         )
 
-        # For sharded models, we use the unranked irpa file
         if self.config.tensor_parallelism_size:
             weights_path = weights_path.with_suffix(".irpa")
 
-        # Build command
         export_cmd = [
             "python",
             "-m",
@@ -429,7 +417,6 @@ class ModelStageManager:
 
         compile_command.extend(self.config.device_settings.compile_flags)
 
-        # Add debug output to see what's happening
         logger.info(f"Running compiler command: {' '.join(compile_command)}")
         try:
             result = subprocess.run(
@@ -492,39 +479,94 @@ class ModelProcessor:
         )
 
 
-TEST_MODELS = {}
+def get_model_by_name(name, tp_size=None, batch_sizes=None):
+    """Get a model config by name, with optional tensor parallelism.
 
-TEST_MODELS["open_llama_3b"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_FROM_GGUF,
-    repo_id="SlyEcho/open_llama_3b_v2_gguf",
-    model_file="open-llama-3b-v2-f16.gguf",
-    tokenizer_id="openlm-research/open_llama_3b_v2",
-    batch_sizes=(1, 4),
-    device_settings=None,
-)
+    Args:
+        name: Base model name
+        tp_size: Optional tensor parallelism size
+        batch_sizes: Optional tuple of batch sizes to support
 
-TEST_MODELS["llama3.1_8b"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_FROM_GGUF,
-    repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
-    model_file="meta-llama-3.1-8b-instruct.f16.gguf",
-    tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
-    batch_sizes=(1, 4),
-    device_settings=None,
-)
-TEST_MODELS[
-    "azure_llama"
-] = ModelConfig(  # This model is currently unused. When you use it, check to make sure the irpa indeed still exist and remove this comment.
-    source=ModelSource.AZURE,
-    azure_config=AzureConfig(
-        account_name="sharkblobs",
-        container_name="halo-models",
-        blob_path="llm-dev/llama3_8b/8b_f16.irpa",
+    Returns:
+        ModelConfig: The requested model configuration
+
+    Raises:
+        KeyError: If the base model name is not found in the predefined models
+    """
+    # Check if the base model exists in predefined models
+    if name not in _PREDEFINED_MODELS:
+        # Try to parse a model pattern like "model_name_tp4"
+        import re
+
+        tp_match = re.match(r"(.+)_tp(\d+)$", name)
+        if tp_match:
+            base_name, tp_size_str = tp_match.groups()
+            if base_name in _PREDEFINED_MODELS:
+                return get_model_by_name(base_name, int(tp_size_str), batch_sizes)
+        raise KeyError(
+            f"Model '{name}' not found. Available models: {list(_PREDEFINED_MODELS.keys())}"
+        )
+
+    # Get the base model config
+    base_config = _PREDEFINED_MODELS[name]
+
+    if tp_size is None and batch_sizes is None:
+        return base_config
+
+    # Set tp and batch size
+    return ModelConfig(
+        source=base_config.source,
+        repo_id=base_config.repo_id,
+        dataset_name=base_config.dataset_name,
+        model_file=base_config.model_file,
+        tokenizer_id=base_config.tokenizer_id,
+        batch_sizes=batch_sizes or base_config.batch_sizes,
+        device_settings=base_config.device_settings,
+        local_path=base_config.local_path,
+        azure_config=base_config.azure_config,
+        tensor_parallelism_size=tp_size,
+    )
+
+
+# Dictionary of predefined base model configurations
+_PREDEFINED_MODELS = {
+    "open_llama_3b": ModelConfig(
+        source=ModelSource.HUGGINGFACE_FROM_GGUF,
+        repo_id="SlyEcho/open_llama_3b_v2_gguf",
+        model_file="open-llama-3b-v2-f16.gguf",
+        tokenizer_id="openlm-research/open_llama_3b_v2",
+        batch_sizes=(1, 4),
+        device_settings=None,
     ),
-    model_file="azure-llama.irpa",
-    tokenizer_id="openlm-research/open_llama_3b_v2",
-    batch_sizes=(1, 4),
-    device_settings=None,
-)
+    "llama3.1_8b": ModelConfig(
+        source=ModelSource.HUGGINGFACE_FROM_GGUF,
+        repo_id="SanctumAI/Meta-Llama-3.1-8B-Instruct-GGUF",
+        model_file="meta-llama-3.1-8b-instruct.f16.gguf",
+        tokenizer_id="NousResearch/Meta-Llama-3.1-8B",
+        batch_sizes=(1, 4),
+        device_settings=None,
+    ),
+    "azure_llama": ModelConfig(  # This model is currently unused. When you use it, check to make sure the irpa indeed still exist and remove this comment.
+        source=ModelSource.AZURE,
+        azure_config=AzureConfig(
+            account_name="sharkblobs",
+            container_name="halo-models",
+            blob_path="llm-dev/llama3_8b/8b_f16.irpa",
+        ),
+        model_file="azure-llama.irpa",
+        tokenizer_id="openlm-research/open_llama_3b_v2",
+        batch_sizes=(1, 4),
+        device_settings=None,
+    ),
+    "tinystories_llama2_25m": ModelConfig(
+        source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
+        dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        model_file="model.irpa",  # This will be the final converted file name
+        tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
+        batch_sizes=(1, 4),
+        device_settings=None,
+    ),
+}
 
 # TODO: upstream this to sharktank
 Dataset(
@@ -543,277 +585,28 @@ Dataset(
     ],
 )
 
-TEST_MODELS["tinystories_llama2_25m"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
-    dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-    model_file="model.irpa",  # This will be the final converted file name
-    tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-    batch_sizes=(1, 4),
-    device_settings=None,
-)
 
-# Create a model with configurable tensor parallelism
-def create_shardable_model(
-    model_name,
-    tp_size=None,
-    batch_sizes=(1, 4),
-    source=None,
-    repo_id=None,
-    dataset_name=None,
-    model_file=None,
-    tokenizer_id=None,
-    local_path=None,
-    azure_config=None,
-):
-    """Create a model config with configurable tensor parallelism.
+class ModelRegistry:
+    """Simple registry for model configurations with dynamic tensor parallelism support."""
 
-    Args:
-        model_name: Name of a predefined model in TEST_MODELS, or None if providing custom params
-        tp_size: Number of shards for tensor parallelism
-        batch_sizes: Tuple of batch sizes to support
-        source: Model source type, required if model_name is None
-        repo_id: HuggingFace repo ID for GGUF models
-        dataset_name: Dataset name for safetensors models
-        model_file: Name of the model file
-        tokenizer_id: Tokenizer ID
-        local_path: Path to local model file
-        azure_config: Azure configuration for Azure models
+    def __getitem__(self, key):
+        """Get a model by name, dynamically creating sharded variants if needed."""
+        return get_model_by_name(key)
 
-    Returns:
-        ModelConfig: Configured model with tensor parallelism
-    """
-    if model_name and model_name in TEST_MODELS:
-        # Copy the existing model config
-        base_config = TEST_MODELS[model_name]
-        # Create a new config with the same parameters but updated tp_size and batch_sizes
-        return ModelConfig(
-            source=base_config.source,
-            repo_id=base_config.repo_id,
-            dataset_name=base_config.dataset_name,
-            model_file=base_config.model_file,
-            tokenizer_id=base_config.tokenizer_id,
-            batch_sizes=batch_sizes,
-            device_settings=base_config.device_settings,
-            local_path=base_config.local_path,
-            azure_config=base_config.azure_config,
-            tensor_parallelism_size=tp_size,
-        )
+    def __setitem__(self, key, value):
+        """Add or update a model in the registry."""
+        if not isinstance(value, ModelConfig):
+            raise TypeError("Value must be a ModelConfig instance")
+        _PREDEFINED_MODELS[key] = value
 
-    # Create a new config from scratch
-    return ModelConfig(
-        source=source,
-        repo_id=repo_id,
-        dataset_name=dataset_name,
-        model_file=model_file,
-        tokenizer_id=tokenizer_id,
-        batch_sizes=batch_sizes,
-        device_settings=None,
-        local_path=local_path,
-        azure_config=azure_config,
-        tensor_parallelism_size=tp_size,
-    )
+    def __contains__(self, key):
+        """Check if a model exists in the registry."""
+        try:
+            self[key]
+            return True
+        except KeyError:
+            return False
 
 
-# Base function to create TinyStories models with configurable tensor parallelism
-def create_tinystories_model(tp_size=None, batch_sizes=(1, 4)):
-    """Create a TinyStories model config with configurable tensor parallelism."""
-    return create_shardable_model(
-        model_name="tinystories_llama2_25m", tp_size=tp_size, batch_sizes=batch_sizes
-    )
-
-
-TEST_MODELS["llama3.1_8b_tp2"] = create_shardable_model(
-    model_name="llama3.1_8b",
-    tp_size=2,
-    batch_sizes=tuple([4]),
-)
-
-# Predefined sharded versions of tinystories for common TP sizes
-# These are convenience configurations that can be referenced directly in tests
-TEST_MODELS["tinystories_tp2"] = create_tinystories_model(
-    tp_size=2, batch_sizes=(4,)  # Fixed batch size of 4 for testing
-)
-
-TEST_MODELS["tinystories_tp4"] = create_tinystories_model(
-    tp_size=4, batch_sizes=(4,)  # Fixed batch size of 4 for testing
-)
-
-TEST_MODELS["tinystories_tp8"] = create_tinystories_model(
-    tp_size=8, batch_sizes=(8,)  # Fixed batch size of 8 for testing
-)
-
-# Example of a sharded model configuration
-TEST_MODELS["llama3.1_405b"] = ModelConfig(
-    source=ModelSource.HUGGINGFACE_FROM_GGUF,
-    repo_id="meta-llama/Llama-3.1-405B",  # Note: This is a placeholder, actual repo may differ
-    model_file="llama3.1-405b.f16.gguf",
-    tokenizer_id="meta-llama/Llama-3.1-405B",
-    batch_sizes=(1, 4),
-    device_settings=None,
-    tensor_parallelism_size=8,  # Required for 405B model
-)
-
-if __name__ == "__main__":
-    import argparse
-    import sys
-
-    # Configure logging for script mode
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        stream=sys.stdout,
-    )
-
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Process a model and generate artifacts"
-    )
-
-    # Model selection
-    model_group = parser.add_mutually_exclusive_group(required=True)
-    model_group.add_argument(
-        "--model-name", help="Name of a predefined model in TEST_MODELS"
-    )
-    model_group.add_argument(
-        "--gguf-model", help="HuggingFace repo ID for a GGUF model"
-    )
-    model_group.add_argument(
-        "--safetensors-model", help="HuggingFace dataset name for a safetensors model"
-    )
-    model_group.add_argument("--local-model", help="Path to a local model file")
-
-    # Required params when not using a predefined model
-    parser.add_argument(
-        "--model-file", help="Name of the model file (required for custom models)"
-    )
-    parser.add_argument(
-        "--tokenizer-id", help="Tokenizer ID (required for custom models)"
-    )
-
-    # Output directory
-    parser.add_argument(
-        "--output-dir", required=True, help="Directory to store model artifacts"
-    )
-
-    # Optional params
-    parser.add_argument(
-        "--tp-size", type=int, help="Tensor parallelism size (number of shards)"
-    )
-    parser.add_argument(
-        "--batch-sizes", help="Comma-separated list of batch sizes, e.g. '1,4,8'"
-    )
-
-    # Device settings
-    device_group = parser.add_argument_group("Device settings")
-    device_group.add_argument(
-        "--cpu", action="store_true", help="Compile for CPU (default)"
-    )
-    device_group.add_argument("--gpu", action="store_true", help="Compile for GPU")
-
-    args = parser.parse_args()
-
-    # Process batch sizes
-    if args.batch_sizes:
-        batch_sizes = tuple(int(bs) for bs in args.batch_sizes.split(","))
-    else:
-        batch_sizes = (1, 4)  # Default
-
-    # Get device settings
-    if args.gpu:
-        device_settings_name = "gpu"
-    else:
-        device_settings_name = "cpu"
-
-    device_settings_config = getattr(device_settings, device_settings_name)
-
-    # Create model config based on arguments
-    if args.model_name:
-        # Use a predefined model with optional overrides
-        model_config = create_shardable_model(
-            model_name=args.model_name, tp_size=args.tp_size, batch_sizes=batch_sizes
-        )
-    elif args.gguf_model:
-        # Custom GGUF model from HuggingFace
-        if not args.model_file or not args.tokenizer_id:
-            parser.error(
-                "--model-file and --tokenizer-id are required for custom GGUF models"
-            )
-
-        model_config = create_shardable_model(
-            model_name=None,
-            source=ModelSource.HUGGINGFACE_FROM_GGUF,
-            repo_id=args.gguf_model,
-            model_file=args.model_file,
-            tokenizer_id=args.tokenizer_id,
-            tp_size=args.tp_size,
-            batch_sizes=batch_sizes,
-        )
-    elif args.safetensors_model:
-        # Custom safetensors model from HuggingFace
-        if not args.tokenizer_id:
-            parser.error("--tokenizer-id is required for custom safetensors models")
-
-        model_config = create_shardable_model(
-            model_name=None,
-            source=ModelSource.HUGGINGFACE_FROM_SAFETENSORS,
-            dataset_name=args.safetensors_model,
-            model_file="model.irpa",  # Fixed output name for safetensors -> irpa conversion
-            tokenizer_id=args.tokenizer_id,
-            tp_size=args.tp_size,
-            batch_sizes=batch_sizes,
-        )
-    elif args.local_model:
-        # Local model file
-        if not args.model_file or not args.tokenizer_id:
-            parser.error(
-                "--model-file and --tokenizer-id are required for local models"
-            )
-
-        model_config = create_shardable_model(
-            model_name=None,
-            source=ModelSource.LOCAL,
-            local_path=Path(args.local_model),
-            model_file=args.model_file,
-            tokenizer_id=args.tokenizer_id,
-            tp_size=args.tp_size,
-            batch_sizes=batch_sizes,
-        )
-
-    # Set device settings on the model config
-    model_config.device_settings = device_settings_config
-
-    # Create output directory
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Process the model
-    logger.info(f"Processing model with the following configuration:")
-    logger.info(f"  Model source: {model_config.source}")
-    if model_config.repo_id:
-        logger.info(f"  Repo ID: {model_config.repo_id}")
-    if model_config.dataset_name:
-        logger.info(f"  Dataset name: {model_config.dataset_name}")
-    if model_config.local_path:
-        logger.info(f"  Local path: {model_config.local_path}")
-    logger.info(f"  Model file: {model_config.model_file}")
-    logger.info(f"  Tokenizer ID: {model_config.tokenizer_id}")
-    logger.info(f"  Batch sizes: {model_config.batch_sizes}")
-    logger.info(f"  Tensor parallelism size: {model_config.tensor_parallelism_size}")
-    logger.info(f"  Output directory: {output_dir}")
-
-    # Create processor and process the model
-    processor = ModelProcessor(output_dir)
-    artifacts = processor.process_model(model_config)
-
-    # Print summary of artifacts
-    logger.info("Model processing completed. Artifacts generated:")
-    logger.info(f"  Weights: {artifacts.weights_path}")
-    logger.info(f"  Tokenizer: {artifacts.tokenizer_path}")
-    logger.info(f"  MLIR: {artifacts.mlir_path}")
-    logger.info(f"  VMFB: {artifacts.vmfb_path}")
-    logger.info(f"  Config: {artifacts.config_path}")
-
-    if artifacts.shard_paths:
-        logger.info(f"  Shards ({len(artifacts.shard_paths)}):")
-        for i, shard_path in enumerate(artifacts.shard_paths):
-            logger.info(f"    Shard {i}: {shard_path}")
+# Replace the global TEST_MODELS dict with an instance of ModelRegistry
+TEST_MODELS = ModelRegistry()
