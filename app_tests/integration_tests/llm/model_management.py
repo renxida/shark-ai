@@ -535,7 +535,7 @@ _PREDEFINED_MODELS = {
         repo_id="SlyEcho/open_llama_3b_v2_gguf",
         model_file="open-llama-3b-v2-f16.gguf",
         tokenizer_id="openlm-research/open_llama_3b_v2",
-        batch_sizes=(1, 4),
+        batch_sizes=(4,),
         device_settings=None,
     ),
     "llama3.1_8b": ModelConfig(
@@ -563,7 +563,7 @@ _PREDEFINED_MODELS = {
         dataset_name="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
         model_file="model.irpa",  # This will be the final converted file name
         tokenizer_id="Mxode/TinyStories-LLaMA2-25M-256h-4l-GQA",
-        batch_sizes=(1, 4),
+        batch_sizes=(4,),
         device_settings=None,
     ),
 }
