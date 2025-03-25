@@ -313,7 +313,7 @@ class ShardedLlamaTest(unittest.TestCase):
                 *[
                     f"--iree-hal-target-device=local[{i}]"
                     for i in range(self.sharded_config.tensor_parallelism_size)
-                ]
+                ],
             )
             output.compile(
                 save_to=iree_module_path,
