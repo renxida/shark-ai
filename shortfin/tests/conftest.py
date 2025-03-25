@@ -86,7 +86,7 @@ def compile_flags(pytestconfig) -> list[str]:
     if system_type == "hostcpu":
         return [
             "--iree-hal-target-device=local",
-            "--iree-hal-local-target-backends=llvm-cpu",
+            "--iree-hal-local-target-device-backends=llvm-cpu",
             "--iree-llvmcpu-target-cpu=host",
         ]
     pytest.skip(
