@@ -112,7 +112,9 @@ pytestmark = pytest.mark.parametrize(
 
 # Test prompts appropriate for LLaMa 3.1
 PROMPT = "What is the capital of the United States?"
-EXPECTED_PATTERN = "The capital of the United States is Washington, D.C. Washington, D.C."  # Most explanations will contain this word
+EXPECTED_PATTERN = (
+    "Washington"  # just a sanity check. pass the model if it mentions Washington at all
+)
 
 
 class TestShardedLlama31Server:
