@@ -23,6 +23,7 @@ from ..model_management import AccuracyValidationException
 from ..server_management import ServerInstance
 
 TENSOR_PARALLELISM_SIZE = 2  # Change this to 2, 4, 8, etc. as needed
+MODEL_NAME = "llama3.1_8b_tp2"
 
 
 @pytest.fixture(scope="function")
@@ -34,8 +35,7 @@ def device_type(test_device):
 pytestmark = pytest.mark.parametrize(
     "model_artifacts,server",
     [
-        ["tinystories_llama2_25m", {"prefix_sharing": "none"}],
-        ["llama3.1_8b_tp2", {"prefix_sharing": "none"}],
+        [MODEL_NAME, {"prefix_sharing": "none"}],
     ],
     indirect=True,
 )
