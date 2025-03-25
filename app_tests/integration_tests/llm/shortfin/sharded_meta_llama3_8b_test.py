@@ -161,9 +161,6 @@ class TestShardedLlama31Server:
                 message=f"Generation did not contain expected pattern.\nExpected to contain: {EXPECTED_PATTERN}\nActual response: {response}",
             )
 
-    @pytest.mark.xfail(
-        reason="Memory access fault by GPU node-3 (Agent handle: 0x555c24e83f80) on address 0x7fc28a1e4000. Reason: Unknown."
-    )
     def test_concurrent_generation_sharded(
         self, server: tuple[Any, int], test_device, device_type
     ) -> None:
