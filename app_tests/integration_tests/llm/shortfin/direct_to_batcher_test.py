@@ -8,7 +8,6 @@ from app_tests.integration_tests.llm.server_management import (
     ServerConfig,
 )
 from app_tests.integration_tests.llm.model_management import (
-    TEST_MODELS,
     ModelProcessor,
     ModelConfig,
 )
