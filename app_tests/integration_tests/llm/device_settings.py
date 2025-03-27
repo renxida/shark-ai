@@ -20,7 +20,7 @@ CPU = DeviceSettings(
 GFX942 = DeviceSettings(
     compile_flags=(
         "--iree-hal-target-device=rocm",
-        "--iree-hal-rocm-target-chip=gfx942",
+        "--iree-hip-target=gfx942",
     ),
     server_flags=("--device=hip",),
 )
@@ -28,7 +28,7 @@ GFX942 = DeviceSettings(
 GFX90A = DeviceSettings(
     compile_flags=(
         "--iree-hal-target-device=rocm",
-        "--iree-hal-rocm-target-chip=gfx90a",
+        "--iree-hip-target=gfx90a",
     ),
     server_flags=("--device=hip",),
 )
@@ -36,7 +36,7 @@ GFX90A = DeviceSettings(
 GFX1100 = DeviceSettings(
     compile_flags=(
         "--iree-hal-target-device=rocm",
-        "--iree-hal-rocm-target-chip=gfx1100",
+        "--iree-hip-target=gfx1100",
     ),
     server_flags=("--device=hip",),
 )
