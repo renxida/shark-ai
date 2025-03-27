@@ -32,6 +32,8 @@ def get_compiler_args(target_device_kind: str, shard_count: int) -> List[str]:
         f"--iree-hal-target-device={target_device_kind}[{i}]"
         for i in range(shard_count)
     ]
+    if target_device_kind == "local":
+        result.append("--iree-hal-local-target-device-backends=llvm-cpu")
     return result
 
 
