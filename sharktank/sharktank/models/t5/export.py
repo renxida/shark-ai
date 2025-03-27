@@ -14,7 +14,7 @@ import transformers
 from .t5 import T5Config, T5Encoder
 from ...types import Dataset, Theta, DefaultPrimitiveTensor
 from ...transforms.dataset import set_float_dtype
-from iree.turbine.aot import FxProgramsBuilder, export
+from iree.turbine.aot import FxProgramsBuilder, export, ExternalTensorTrait
 
 __all__ = [
     "export_encoder_mlir",
@@ -39,11 +39,13 @@ def export_encoder_mlir(
             dataset.properties,
         )
         model = T5Encoder(theta=dataset.root_theta, config=config)
+    for t in model.theta.flatten().values():
+        ExternalTensorTrait(external_name=t.name, external_scope="").set(t.as_torch())
 
     fxb = FxProgramsBuilder(model)
 
     for batch_size in batch_sizes:
-        sample_inputs = model.sample_inputs(batch_size)
+        _, sample_inputs = model.sample_inputs(batch_size)
 
         if dynamic_context_length:
             context_length_dim_idx = 1
@@ -103,14 +105,26 @@ def import_encoder_dataset_from_hugging_face(
     /,
     *,
     tokenizer_config: dict[str, Any] | None = None,
+    tokenizer_path_or_repo_id: str | None = None,
+    tokenizer_subfolder: str | None = None,
+    subfolder: str = "",
 ) -> Dataset:
     model = repo_id_or_model
     if not isinstance(repo_id_or_model, transformers.T5EncoderModel):
-        model = transformers.T5EncoderModel.from_pretrained(repo_id_or_model)
+        model = transformers.T5EncoderModel.from_pretrained(
+            repo_id_or_model, subfolder=subfolder, torch_dtype="auto"
+        )
         from transformers.models.auto.tokenization_auto import get_tokenizer_config
 
+        if tokenizer_path_or_repo_id is None:
+            assert not isinstance(repo_id_or_model, transformers.T5EncoderModel)
+            tokenizer_path_or_repo_id = repo_id_or_model
+        if tokenizer_subfolder is None:
+            tokenizer_subfolder = subfolder
         if tokenizer_config is None:
-            tokenizer_config = get_tokenizer_config(repo_id_or_model)
+            tokenizer_config = get_tokenizer_config(
+                tokenizer_path_or_repo_id, subfolder=tokenizer_subfolder
+            )
     else:
         if tokenizer_config is None:
             raise ValueError(

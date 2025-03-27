@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 import torch
 from ..types import Dataset
-
+from ..types import serialized_name_to_dtype
 from . import hf_datasets
 from . import tokenizer
 
@@ -36,7 +36,7 @@ def parse(parser: argparse.ArgumentParser, *, args: Sequence[str] | None = None)
         if hasattr(parsed_args, attr):
             dtype = getattr(parsed_args, attr)
             if dtype is not None:
-                dtype = getattr(torch, dtype)
+                dtype = serialized_name_to_dtype(dtype)
                 assert isinstance(dtype, torch.dtype)
             setattr(parsed_args, attr, dtype)
     return parsed_args
@@ -75,7 +75,7 @@ def add_model_options(parser: argparse.ArgumentParser):
         "--attention-kernel",
         type=str,
         default="torch",
-        choices=["decomposed", "torch"],
+        choices=["decomposed", "torch", "sharktank"],
     )
     parser.add_argument(
         "--skip-prefill",
@@ -176,11 +176,13 @@ def get_input_dataset(args) -> Dataset:
     Presumes that the arg parser was initialized with |add_input_dataset|.
     """
     data_files = get_input_data_files(args)
+    device = getattr(args, "device", None)
+
     if "gguf" in data_files:
-        return Dataset.load(data_files["gguf"][0], file_type="gguf")
+        return Dataset.load(data_files["gguf"][0], file_type="gguf", device=device)
 
     if "irpa" in data_files:
-        return Dataset.load(data_files["irpa"][0], file_type="irpa")
+        return Dataset.load(data_files["irpa"][0], file_type="irpa", device=device)
 
     raise ValueError(f'Dataset format unsupported. Must be "gguf" or "irpa".')
 
